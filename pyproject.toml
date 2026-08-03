@@ -37,5 +37,16 @@ packages = ["pipeline", "api", "api.bulletin"]
 line-length = 100
 target-version = "py311"
 
+# Pin the rule set explicitly. Relying on ruff's defaults makes CI results
+# depend on whichever ruff version happens to be installed.
+[tool.ruff.lint]
+select = [
+    "E4",  # imports
+    "E7",  # statements
+    "E9",  # runtime errors
+    "F",   # pyflakes
+    "I",   # import sorting
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
