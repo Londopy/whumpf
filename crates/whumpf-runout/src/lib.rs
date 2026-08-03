@@ -4,7 +4,9 @@
 //! drops below alpha. A cell is in the runout if it is downslope-connected to
 //! the release point and:
 //!
-//!     atan((z_release - z_cell) / horizontal_distance) >= alpha
+//! ```text
+//! atan((z_release - z_cell) / horizontal_distance) >= alpha
+//! ```
 //!
 //! Typical alpha is 18-25 deg; 23 is a conservative default for large slides.
 //!
