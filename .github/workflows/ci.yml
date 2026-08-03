@@ -15,9 +15,9 @@ jobs:
     name: python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -46,7 +46,7 @@ jobs:
       run:
         working-directory: crates/whumpf-runout
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -78,7 +78,7 @@ jobs:
     name: licence check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Next Gen submissions must ship a detectable open-source licence.
       - name: LICENSE present at repo root
         run: test -f LICENSE || { echo "::error::LICENSE missing at repo root"; exit 1; }
