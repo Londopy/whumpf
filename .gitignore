@@ -1,0 +1,92 @@
+# Data — never commit tiles, DEMs, or composites
+data/
+*.tif
+*.tiff
+*.vrt
+*.jp2
+tiles/
+*.f32
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks
+*.mobileprovision
+secrets.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Rust
+target/
+pkg/
+Cargo.lock
+
+# Node / web
+node_modules/
+dist/
+.parcel-cache/
+.vite/
+
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]serSettings/
+[Mm]emoryCaptures/
+*.csproj
+*.sln
+*.unityproj
+sysinfo.txt
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+.sublime/
+sftp-config.json
+sftp-config-alt*.json
+Package Control.last-run
+Package Control.ca-list
+Package Control.ca-bundle
+Package Control.system-ca-bundle
+Package Control.cache/
+Package Control.ca-certs/
+Package Control.merged-ca-bundle
+Package Control.user-ca-bundle
+oscrypto-ca-bundle.crt
+bh_unicode_properties.cache
+GitHub.sublime-settings
+
+# Other editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/

@@ -1,0 +1,19 @@
+{
+  "name": "whumpf-web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "cesium": "^1.118.0"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0",
+    "vite-plugin-cesium": "^1.2.23"
+  }
+}

@@ -1,0 +1,51 @@
+# Craigieburn Range / Arthur's Pass, Canterbury, New Zealand
+# LIVE AOI. Southern hemisphere -- in season May-Nov, so it is forecasting NOW.
+# This is the AOI that makes the Sep 30 demo show real, current bulletin data.
+
+slug = "craigieburn"
+name = "Craigieburn Range / Arthur's Pass"
+country = "NZ"
+hemisphere = "S"
+
+# west, south, east, north (EPSG:4326)
+# PROVISIONAL -- narrow this once LiDAR coverage is confirmed.
+bbox = [171.60, -43.20, 171.85, -43.05]
+
+[elevation]
+source = "linz_lidar_dem"
+# LINZ 8m national DEM. Seamless, always available.
+fallback = "linz_dem_8m"
+# https://data.linz.govt.nz/ -- free account, API key in .env as LINZ_API_KEY
+# WEEK 1 HARD GATE: confirm LiDAR coverage for this exact bbox before committing.
+# Environment Canterbury has flown much of the region, but verify the tile index.
+layer_id = ""
+ion_asset_id = 0
+
+[imagery]
+collection = "sentinel-2-l2a"
+# SOUTHERN HEMISPHERE -- late-season snowpack is Sep/Oct, not Mar/Apr.
+# Flipping this is an easy and expensive mistake.
+season_months = [9, 10]
+years = [2023, 2024, 2025, 2026]
+max_cloud_cover = 20
+# No NAIP outside the US. LINZ aerial imagery is the analogue (CC BY 4.0).
+detail_collection = "linz_aerial"
+
+[bulletin]
+adapter = "nzaa"
+# NZ Avalanche Advisory -- schema differs from avalanche.org.
+# Inspect the live payload before writing the adapter. Do not assume.
+center_id = "NZAA"
+region = "craigieburn"
+fixture = "api/fixtures/nzaa-sample.json"
+use_fixture = false # LIVE
+
+# NZAA band breakpoints. Verify against the published advisory for this region.
+[bulletin.bands]
+lower = [0, 1100]
+middle = [1100, 1500]
+upper = [1500, 2400]
+
+[tiles]
+attribute_zoom = [10, 15]
+imagery_zoom = [10, 16]

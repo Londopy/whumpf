@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security or data-integrity issue
+    url: https://github.com/Londopy/whumpf/security/advisories/new
+    about: Report privately if incorrect information could be shown as correct.
+  - name: Avalanche forecast questions
+    url: https://avalanche.org/
+    about: We display bulletins, we do not write them. Contact your local forecast centre.

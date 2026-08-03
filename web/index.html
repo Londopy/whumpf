@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WHUMPF</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.118/Build/Cesium/Widgets/widgets.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="cesium"></div>
+
+<header id="topbar">
+  <div class="brand">WHUMPF</div>
+  <select id="aoi" aria-label="Area of interest"></select>
+  <div id="staleness" class="badge" hidden></div>
+</header>
+
+<aside id="panel">
+  <nav class="modes" role="tablist">
+    <button data-mode="0" role="tab">Off</button>
+    <button data-mode="1" role="tab" class="active">Slope</button>
+    <button data-mode="2" role="tab">Bulletin</button>
+    <button data-mode="3" role="tab">Manual</button>
+  </nav>
+
+  <section id="pane-slope" class="pane">
+    <h2>Slope angle</h2>
+    <ul class="legend">
+      <li><i style="background:#f2e14c"></i>27–29°</li>
+      <li><i style="background:#f2a341"></i>30–34°</li>
+      <li><i style="background:#e2483d"></i>35–45°</li>
+      <li><i style="background:#8f2320"></i>46–50°</li>
+      <li><i style="background:#7b4ea8"></i>50°+</li>
+    </ul>
+  </section>
+
+  <section id="pane-bulletin" class="pane" hidden>
+    <div id="danger" class="danger"></div>
+    <div id="problem-tabs" class="tabs"></div>
+    <div id="problem-detail"></div>
+  </section>
+
+  <section id="pane-manual" class="pane" hidden>
+    <h2>Filter</h2>
+    <div class="field">
+      <label>Aspect</label>
+      <div id="octants" class="octants"></div>
+    </div>
+    <div class="field">
+      <label>Slope <output id="slope-out">30–50°</output></label>
+      <input type="range" id="slope-min" min="0" max="90" value="30">
+      <input type="range" id="slope-max" min="0" max="90" value="50">
+    </div>
+    <div class="field">
+      <label>Elevation <output id="elev-out">0–4000 m</output></label>
+      <input type="range" id="elev-min" min="0" max="4000" step="50" value="0">
+      <input type="range" id="elev-max" min="0" max="4000" step="50" value="4000">
+    </div>
+    <div class="field">
+      <label>Opacity <output id="opacity-out">0.65</output></label>
+      <input type="range" id="opacity" min="0" max="1" step="0.05" value="0.65">
+    </div>
+  </section>
+
+  <footer id="attribution"></footer>
+</aside>
+
+<div id="disclaimer" class="modal">
+  <div class="modal-box">
+    <h2>Before you use this</h2>
+    <p>WHUMPF displays avalanche bulletins published by official forecast
+       centres. It does not produce forecasts and it cannot tell you whether a
+       slope is safe.</p>
+    <p>Terrain data contains errors. A slope that is not highlighted is not a
+       safe slope. Always consult the source bulletin and travel with proper
+       training and equipment.</p>
+    <button id="disclaimer-ok">I understand</button>
+  </div>
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

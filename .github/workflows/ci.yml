@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install GDAL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev
+          echo "GDAL_VERSION=$(gdal-config --version)" >> "$GITHUB_ENV"
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest -q
+
+      - name: Pipeline self-check
+        run: python -m pipeline.cli check
+
+  rust:
+    name: rust
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crates/whumpf-runout
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates/whumpf-runout
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test
+
+      - name: Build WASM
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo build --release --target wasm32-unknown-unknown --features wasm
+
+  licence:
+    name: licence check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Next Gen submissions must ship a detectable open-source licence.
+      - name: LICENSE present at repo root
+        run: test -f LICENSE || { echo "::error::LICENSE missing at repo root"; exit 1; }

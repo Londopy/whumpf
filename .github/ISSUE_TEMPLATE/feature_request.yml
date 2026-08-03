@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest something new
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Scope discipline matters more than features here. Two AOIs done well
+        beats a continent done badly — proposals to add coverage are unlikely
+        to be accepted before Sep 30.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: Describe the situation, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - pipeline
+        - api
+        - web frontend
+        - mobile
+        - whumpf-runout (Rust)
+        - docs
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: This does not remove, hide, or weaken any attribution, expiry, staleness, or disclaimer surface
+          required: true
+        - label: This does not generate, interpolate, or modify forecast data
+          required: true

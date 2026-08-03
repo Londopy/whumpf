@@ -1,0 +1,39 @@
+{
+  "_comment": "PLACEHOLDER. Replace with the real Sierra Avalanche Center payload captured from api.avalanche.org for the date of the Castle Peak accident. This file is the demo's last line of defence and the narrative centrepiece -- 'this is the bulletin that was live that morning.' Capture the genuine JSON, do not ship invented numbers.",
+  "_capture_command": "curl 'https://api.avalanche.org/v2/public/product?type=forecast&center_id=SAC&zone_id=<ZONE>' > api/fixtures/sac-2026-02-14.json",
+  "_status": "SYNTHETIC - values below are illustrative only",
+
+  "published_time": "2026-02-14T06:00:00-08:00",
+  "expires_time": "2026-02-15T06:00:00-08:00",
+  "avalanche_center": {
+    "name": "Sierra Avalanche Center",
+    "url": "https://www.sierraavalanchecenter.org/"
+  },
+  "danger": [
+    {
+      "valid_day": "current",
+      "lower": 2,
+      "middle": 3,
+      "upper": 3
+    }
+  ],
+  "forecast_avalanche_problems": [
+    {
+      "name": "Persistent Slab",
+      "likelihood": "Likely",
+      "size": [1, 3],
+      "location": [
+        "n_upper", "ne_upper", "e_upper",
+        "n_middle", "ne_middle", "e_middle"
+      ],
+      "discussion": "A persistent weak layer buried in late January continues to produce large avalanches on north through east facing slopes above 2400 m. Recent loading has added stress to this layer. Avoid steep, wind-loaded terrain on these aspects."
+    },
+    {
+      "name": "Wind Slab",
+      "likelihood": "Possible",
+      "size": [1, 2],
+      "location": ["ne_upper", "e_upper", "se_upper"],
+      "discussion": "Fresh wind slabs formed overnight on lee aspects near and above treeline."
+    }
+  ]
+}

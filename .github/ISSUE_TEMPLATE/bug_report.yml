@@ -1,0 +1,72 @@
+name: Bug report
+description: Something behaves incorrectly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If the bug could cause **incorrect avalanche information to be shown as
+        correct** — a stale bulletin rendering as current, a missing expiry
+        banner, terrain filtered against the wrong parameters — please report it
+        privately via [SECURITY.md](../SECURITY.md) instead.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. make attributes AOI=castle-peak
+        2. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - pipeline (terrain / attributes / imagery)
+        - api (bulletin / route analysis)
+        - web frontend
+        - mobile
+        - whumpf-runout (Rust)
+        - other
+    validations:
+      required: true
+
+  - type: input
+    id: aoi
+    attributes:
+      label: AOI
+      placeholder: castle-peak
+
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: |
+        OS:
+        Python:
+        GDAL (gdal-config --version):
+        Browser:
+      render: text
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or traceback
+      render: shell

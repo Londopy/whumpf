@@ -1,0 +1,47 @@
+# Castle Peak / Donner Summit, California
+# Narrative AOI. Northern hemisphere, dormant in Aug-Sep -> runs on a fixture.
+
+slug = "castle-peak"
+name = "Castle Peak / Donner Summit"
+country = "US"
+hemisphere = "N"
+
+# west, south, east, north (EPSG:4326)
+bbox = [-120.42, 39.28, -120.28, 39.38]
+
+[elevation]
+source = "usgs_3dep_1m"
+# Fallback if 1m has gaps in the bbox. VERIFY COVERAGE BEFORE COMMITTING.
+fallback = "usgs_3dep_13"
+s3_prefix = "s3://prd-tnm/StagedProducts/Elevation/1m/"
+# Set after upload. `make terrain` prints it.
+ion_asset_id = 0
+
+[imagery]
+collection = "sentinel-2-l2a"
+# Northern hemisphere late-season snowpack.
+season_months = [3, 4]
+years = [2023, 2024, 2025, 2026]
+max_cloud_cover = 20
+# High-res luminance donor for the hybrid blend (spec 6.3f). US only.
+detail_collection = "naip"
+
+[bulletin]
+adapter = "avalanche_org"
+center_id = "SAC"
+zone_id = "" # fill from /products listing
+fixture = "api/fixtures/sac-2026-02-14.json"
+# Aug-Sep is off-season for this centre. Demo runs on the fixture.
+use_fixture = true
+
+# Elevation bands are defined by the forecast centre against LOCAL treeline and
+# alpine boundaries -- they are not universal. Getting these wrong makes the
+# overlay confidently and invisibly incorrect. Verify against the source bulletin.
+[bulletin.bands]
+lower = [0, 2130]     # below treeline
+middle = [2130, 2590] # near treeline
+upper = [2590, 4000]  # above treeline
+
+[tiles]
+attribute_zoom = [10, 15]
+imagery_zoom = [10, 16]

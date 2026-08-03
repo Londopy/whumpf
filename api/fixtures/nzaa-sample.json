@@ -1,0 +1,25 @@
+{
+  "_comment": "PLACEHOLDER in the ALREADY-NORMALIZED shape, so the API works end to end before the NZAA adapter is written. Once the real endpoint is found, replace this with a raw NZAA payload and rewrite NZAAAdapter.normalize() against it.",
+  "_status": "SYNTHETIC - illustrative only",
+  "_note": "Southern hemisphere: loaded aspects are S through SE, not N through NE.",
+
+  "issued": "2026-08-03T06:00:00+12:00",
+  "expires": "2026-08-04T06:00:00+12:00",
+  "danger": {
+    "lower": 1,
+    "middle": 2,
+    "upper": 3
+  },
+  "problems": [
+    {
+      "type": "Wind Slab",
+      "likelihood": "Likely",
+      "size": [1, 2],
+      "aspects": ["S", "SE", "E"],
+      "elevations": ["upper", "middle"],
+      "slope_min": 30,
+      "slope_max": 45,
+      "comment": "Northwest winds have loaded lee slopes on southerly and easterly aspects above 1500 m. Expect reactive slabs in gullies and below ridgelines."
+    }
+  ]
+}

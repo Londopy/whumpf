@@ -1,0 +1,26 @@
+[package]
+name = "whumpf-runout"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Avalanche runout kernel: alpha-angle energy line over a DEM grid"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = { version = "0.2", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = []
+wasm = ["dep:wasm-bindgen", "dep:console_error_panic_hook"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# Not used: ndarray (Vec<f32> with manual indexing is enough), rayon (no threads
+# in WASM without SharedArrayBuffer + COOP/COEP), gdal (system deps).
