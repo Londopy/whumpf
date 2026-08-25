@@ -58,6 +58,47 @@ React hooks became controller classes. `useState` → a small `Observable`;
 
 ---
 
+## Validation
+
+Phase 2 was originally written against hand-written structural interfaces
+(`CesiumViewerLike`, `CesiumApi`, and friends) rather than Cesium's own
+typings. It compiled, but nothing had checked a single Cesium call against
+the real API. Those interfaces are now gone -- every module imports from
+`cesium` directly and typechecks against Cesium 1.144.
+
+That surfaced one genuine bug and two type-correctness issues:
+
+| Finding | Severity | Fix |
+|---|---|---|
+| `viewer.pick(...)` -- `pick` is on `Scene`, not `Viewer` | **Real bug.** Would have thrown on first click in both the avalanche and route layers | `viewer.scene.pick(...)` |
+| Entity graphics take `Property` objects, not raw values | Cosmetic -- Cesium's setters coerce at runtime, so it would have worked | Explicit `ColorMaterialProperty` / `ConstantProperty` |
+| `entity.position` takes a `PositionProperty` | Same | Explicit `ConstantPositionProperty` |
+
+Separately, `index.html` pulled Cesium's widget CSS from a CDN pinned to
+1.118 while npm resolved `^1.118` to **1.144** -- so the stylesheet and the
+engine could drift apart on any fresh install. The CSS now comes from the
+installed package and cannot disagree with it.
+
+### Runtime checks
+
+Typechecking proves shape, not behaviour, so the ported logic is also
+executed: `npm run smoke` in `web/` runs 12 assertions covering geodesy
+against an independently computed great-circle distance, a GPX
+export/re-import round trip, resampling, difficulty monotonicity, and the
+`Observable` change semantics (including the bail-on-identical-value
+behaviour that mirrors React's). All pass.
+
+One testability note that came out of it: `parseGpx` uses the browser's
+`DOMParser`, so running it under Node needs a DOM shim (`linkedom`, wired
+into the smoke test). Worth knowing before you put any of this in CI.
+
+**Still unexecuted:** everything in `src/cesium/` needs WebGL and a real
+globe, so none of it has run. The API calls are now verified against
+Cesium's typings, which is a much stronger claim than before, but it is not
+the same as having watched it draw. That is what the vertical slice is for.
+
+---
+
 ## Not done
 
 **Phase 3 — the UI (~4,690 lines, 31 components).** All of `src/map/*.tsx`

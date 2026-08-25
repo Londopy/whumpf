@@ -1,3 +1,10 @@
+import {
+  Cartesian3,
+  Color,
+  type Entity,
+  type Viewer,
+} from "cesium";
+
 /** Lat/lng grid overlay, ported from contour-map's useGraticule (kiy-codes).
  *
  * The original built a GeoJSON FeatureCollection of meridians and parallels
@@ -8,26 +15,6 @@
  * ladder is unchanged -- it is chosen so the grid stays readable rather than
  * turning into a solid block of lines as you zoom.
  */
-export interface GraticuleCesiumApi {
-  Cartesian3: { fromDegreesArray(coords: number[]): unknown[]; fromDegrees(lon: number, lat: number, height?: number): unknown };
-  Color: { fromCssColorString(css: string): { withAlpha(a: number): unknown } };
-  LabelStyle?: { FILL_AND_OUTLINE: number };
-  Cartesian2?: new (x: number, y: number) => unknown;
-}
-
-interface GraticuleEntity { id?: unknown }
-
-export interface GraticuleViewerLike {
-  entities: {
-    add(entity: Record<string, unknown>): GraticuleEntity;
-    remove(entity: GraticuleEntity): boolean;
-  };
-  camera: {
-    positionCartographic: { height: number };
-    moveEnd: { addEventListener(cb: () => void): () => void };
-  };
-}
-
 // Degrees between grid lines at a given camera height (metres). Picked so
 // roughly 6-12 lines are visible at any zoom -- dense enough to read a
 // position off, sparse enough not to obscure terrain.
@@ -56,14 +43,13 @@ function formatDegrees(value: number, step: number): string {
 }
 
 export class Graticule {
-  private entities: GraticuleEntity[] = [];
+  private entities: Entity[] = [];
   private stopListening: (() => void) | null = null;
   private enabled = false;
   private lastStep = 0;
 
   constructor(
-    private readonly viewer: GraticuleViewerLike,
-    private readonly cesium: GraticuleCesiumApi,
+    private readonly viewer: Viewer,
     private readonly options: { color?: string; showLabels?: boolean } = {},
   ) {}
 
@@ -99,7 +85,7 @@ export class Graticule {
     this.clear();
 
     const css = this.options.color ?? "#ffffff";
-    const material = this.cesium.Color.fromCssColorString(css).withAlpha(0.25);
+    const material = Color.fromCssColorString(css).withAlpha(0.25);
     const showLabels = this.options.showLabels ?? true;
 
     // Meridians.
@@ -108,7 +94,7 @@ export class Graticule {
       for (let lat = -80; lat <= 80; lat += 2) coords.push(lng, lat);
       this.entities.push(
         this.viewer.entities.add({
-          polyline: { positions: this.cesium.Cartesian3.fromDegreesArray(coords), width: 1, material, clampToGround: true },
+          polyline: { positions: Cartesian3.fromDegreesArray(coords), width: 1, material, clampToGround: true },
         }),
       );
       if (showLabels) this.addLabel(lng, 0, `${formatDegrees(lng, step)}°`);
@@ -121,7 +107,7 @@ export class Graticule {
       for (let lng = -180; lng <= 180; lng += 2) coords.push(lng, lat);
       this.entities.push(
         this.viewer.entities.add({
-          polyline: { positions: this.cesium.Cartesian3.fromDegreesArray(coords), width: 1, material, clampToGround: true },
+          polyline: { positions: Cartesian3.fromDegreesArray(coords), width: 1, material, clampToGround: true },
         }),
       );
       if (showLabels) this.addLabel(0, lat, `${formatDegrees(lat, step)}°`);
@@ -131,13 +117,13 @@ export class Graticule {
   private addLabel(lng: number, lat: number, text: string): void {
     this.entities.push(
       this.viewer.entities.add({
-        position: this.cesium.Cartesian3.fromDegrees(lng, lat),
+        position: Cartesian3.fromDegrees(lng, lat),
         label: {
           text,
           font: "12px sans-serif",
-          fillColor: this.cesium.Color.fromCssColorString("#ffffff").withAlpha(0.7),
+          fillColor: Color.fromCssColorString("#ffffff").withAlpha(0.7),
           showBackground: true,
-          backgroundColor: this.cesium.Color.fromCssColorString("#000000").withAlpha(0.4),
+          backgroundColor: Color.fromCssColorString("#000000").withAlpha(0.4),
         },
       }),
     );

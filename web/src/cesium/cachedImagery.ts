@@ -10,25 +10,7 @@
  * shared across every imagery source, exactly as the protocol did.
  */
 import { fetchThroughCache } from "../cache/tileCacheProtocol";
-
-export interface ImageryCesiumApi {
-  UrlTemplateImageryProvider: new (options: Record<string, unknown>) => unknown;
-  ImageryLayer: new (provider: unknown, options?: Record<string, unknown>) => CesiumImageryLayer;
-  Resource: new (options: { url: string }) => unknown;
-  Credit: new (html: string, showOnScreen?: boolean) => unknown;
-}
-
-export interface CesiumImageryLayer {
-  alpha: number;
-  show: boolean;
-}
-
-export interface ImageryViewerLike {
-  imageryLayers: {
-    add(layer: CesiumImageryLayer, index?: number): void;
-    remove(layer: CesiumImageryLayer, destroy?: boolean): boolean;
-  };
-}
+import { Credit, ImageryLayer, UrlTemplateImageryProvider } from "cesium";
 
 export interface CachedImageryOptions {
   /** XYZ template, e.g. https://host/{z}/{x}/{y}.png */
@@ -73,19 +55,13 @@ async function bufferToImage(buffer: ArrayBuffer): Promise<ImageBitmap | HTMLIma
  * Cesium treats the same way MapLibre treated a failed custom-protocol
  * request: the tile renders blank and the scene keeps going.
  */
-export function createCachedImageryLayer(
-  cesium: ImageryCesiumApi,
-  options: CachedImageryOptions,
-): CesiumImageryLayer {
-  const provider = new cesium.UrlTemplateImageryProvider({
+export function createCachedImageryLayer(options: CachedImageryOptions): ImageryLayer {
+  const provider = new UrlTemplateImageryProvider({
     url: options.urlTemplate,
     minimumLevel: options.minimumLevel ?? 0,
     maximumLevel: options.maximumLevel ?? 19,
-    credit: options.attributionHtml ? new cesium.Credit(options.attributionHtml, false) : undefined,
-  }) as {
-    requestImage?: (x: number, y: number, level: number, request?: unknown) => unknown;
-    _cachedRequestImage?: unknown;
-  };
+    credit: options.attributionHtml ? new Credit(options.attributionHtml, false) : undefined,
+  });
 
   if (options.cache !== false) {
     const template = options.urlTemplate;
@@ -99,7 +75,7 @@ export function createCachedImageryLayer(
     };
   }
 
-  const layer = new cesium.ImageryLayer(provider, {});
+  const layer = new ImageryLayer(provider, {});
   if (options.alpha !== undefined) layer.alpha = options.alpha;
   return layer;
 }

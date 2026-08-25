@@ -8,13 +8,16 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke": "esbuild test/smoke.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/smoke.mjs --log-level=error && node node_modules/.cache/smoke.mjs"
   },
   "dependencies": {
     "cesium": "^1.118.0"
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
+    "esbuild": "^0.28.2",
+    "linkedom": "^0.18.13",
     "typescript": "~5.8.3",
     "vite": "^5.2.0",
     "vite-plugin-cesium": "^1.2.23"

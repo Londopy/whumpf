@@ -19,6 +19,17 @@ import type {
 } from "../providers/AvalancheProvider";
 import { describeNetworkError } from "../net/fetchTimeout";
 import { LayerController } from "./layerController";
+import {
+  type Cartesian2,
+  Color,
+  ColorMaterialProperty,
+  ConstantProperty,
+  type Entity,
+  GeoJsonDataSource,
+  ScreenSpaceEventHandler,
+  ScreenSpaceEventType,
+  type Viewer,
+} from "cesium";
 
 // Forecast-center danger ratings are issued at most a few times a day --
 // re-fetching more often than this would just hit the same data.
@@ -30,64 +41,12 @@ export function invalidateAvalancheCache(): void {
   cache = null;
 }
 
-/** Structural slice of the Cesium API this layer needs, so the module does
- * not take a hard dependency on Cesium's typings. */
-export interface CesiumApi {
-  GeoJsonDataSource: {
-    load(data: unknown, options?: Record<string, unknown>): Promise<CesiumDataSource>;
-  };
-  Color: {
-    fromCssColorString(css: string): CesiumColor;
-    WHITE: CesiumColor;
-  };
-  ScreenSpaceEventHandler: new (element: unknown) => CesiumScreenSpaceHandler;
-  ScreenSpaceEventType: { LEFT_CLICK: number; MOUSE_MOVE: number };
-  HeightReference?: { CLAMP_TO_GROUND: number };
-}
-
-export interface CesiumColor {
-  withAlpha(alpha: number): CesiumColor;
-}
-
-export interface CesiumEntity {
-  properties?: { getValue(time?: unknown): Record<string, unknown> };
-  polygon?: {
-    material: unknown;
-    outline: boolean;
-    outlineColor: unknown;
-    outlineWidth: number;
-    heightReference?: unknown;
-classificationType?: unknown;
-  };
-  polyline?: { material: unknown; width: number };
-}
-
-export interface CesiumDataSource {
-  entities: { values: CesiumEntity[] };
-}
-
-export interface CesiumScreenSpaceHandler {
-  setInputAction(action: (event: unknown) => void, type: number): void;
-  removeInputAction(type: number): void;
-  destroy(): void;
-}
-
-export interface CesiumViewerLike {
-  scene: { canvas: HTMLCanvasElement };
-  dataSources: {
-    add(source: CesiumDataSource): Promise<CesiumDataSource>;
-    remove(source: CesiumDataSource, destroy?: boolean): boolean;
-  };
-  pick(position: unknown): { id?: CesiumEntity } | undefined;
-}
-
 export class AvalancheLayer extends LayerController {
-  private dataSource: CesiumDataSource | null = null;
-  private handler: CesiumScreenSpaceHandler | null = null;
+  private dataSource: GeoJsonDataSource | null = null;
+  private handler: ScreenSpaceEventHandler | null = null;
 
   constructor(
-    private readonly viewer: CesiumViewerLike,
-    private readonly cesium: CesiumApi,
+    private readonly viewer: Viewer,
     private readonly provider: AvalancheProvider,
     private readonly onSelect?: (feature: AvalancheRegionFeature) => void,
   ) {
@@ -117,11 +76,11 @@ export class AvalancheLayer extends LayerController {
       cache = { data, fetchedAt };
     }
 
-    const source = await this.cesium.GeoJsonDataSource.load(data, {
+    const source = await GeoJsonDataSource.load(data, {
       // Styling is applied per-entity below; suppress the defaults so
       // unrated regions don't briefly flash in Cesium's stock colours.
-      stroke: this.cesium.Color.WHITE,
-      fill: this.cesium.Color.WHITE.withAlpha(0),
+      stroke: Color.WHITE,
+      fill: Color.WHITE.withAlpha(0),
       strokeWidth: 1.5,
       clampToGround: true,
     });
@@ -147,12 +106,12 @@ export class AvalancheLayer extends LayerController {
   /** MapLibre did this with paint expressions reading feature properties.
    * Cesium has no expression language for entities, so the same rules are
    * applied imperatively -- the thresholds are unchanged. */
-  private styleEntities(source: CesiumDataSource): void {
+  private styleEntities(source: GeoJsonDataSource): void {
     for (const entity of source.entities.values) {
       const props = entity.properties?.getValue() ?? {};
       const css = typeof props.color === "string" ? props.color : "#888888";
       const danger = typeof props.danger_level === "number" ? props.danger_level : -1;
-      const color = this.cesium.Color.fromCssColorString(css);
+      const color = Color.fromCssColorString(css);
 
       // Off-season/no-rating regions (danger_level -1) get a faint outline
       // only -- a real rating gets a visible fill, so the two states are
@@ -160,14 +119,14 @@ export class AvalancheLayer extends LayerController {
       const fillAlpha = danger < 0 ? 0.06 : 0.45;
 
       if (entity.polygon) {
-        entity.polygon.material = color.withAlpha(fillAlpha);
-        entity.polygon.outline = true;
-        entity.polygon.outlineColor = color.withAlpha(0.8);
-        entity.polygon.outlineWidth = 1.5;
+        entity.polygon.material = new ColorMaterialProperty(color.withAlpha(fillAlpha));
+        entity.polygon.outline = new ConstantProperty(true);
+        entity.polygon.outlineColor = new ConstantProperty(color.withAlpha(0.8));
+        entity.polygon.outlineWidth = new ConstantProperty(1.5);
       }
       if (entity.polyline) {
-        entity.polyline.material = color.withAlpha(0.8);
-        entity.polyline.width = 1.5;
+        entity.polyline.material = new ColorMaterialProperty(color.withAlpha(0.8));
+        entity.polyline.width = new ConstantProperty(1.5);
       }
     }
   }
@@ -177,28 +136,28 @@ export class AvalancheLayer extends LayerController {
    * scoping, so we pick and then check the hit belongs to this data source. */
   private wireInteraction(): void {
     const canvas = this.viewer.scene.canvas;
-    const handler = new this.cesium.ScreenSpaceEventHandler(canvas);
+    const handler = new ScreenSpaceEventHandler(canvas);
 
-    handler.setInputAction((event: unknown) => {
-      const position = (event as { position?: unknown }).position;
+    handler.setInputAction((event: ScreenSpaceEventHandler.PositionedEvent) => {
+      const position = event.position;
       if (!position) return;
       const entity = this.pickOwnEntity(position);
       if (!entity) return;
       const props = entity.properties?.getValue() ?? {};
       this.onSelect?.(props as unknown as AvalancheRegionFeature);
-    }, this.cesium.ScreenSpaceEventType.LEFT_CLICK);
+    }, ScreenSpaceEventType.LEFT_CLICK);
 
-    handler.setInputAction((event: unknown) => {
-      const endPosition = (event as { endPosition?: unknown }).endPosition;
+    handler.setInputAction((event: ScreenSpaceEventHandler.MotionEvent) => {
+      const endPosition = event.endPosition;
       if (!endPosition) return;
       canvas.style.cursor = this.pickOwnEntity(endPosition) ? "pointer" : "";
-    }, this.cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    }, ScreenSpaceEventType.MOUSE_MOVE);
 
     this.handler = handler;
   }
 
-  private pickOwnEntity(windowPosition: unknown): CesiumEntity | null {
-    const picked = this.viewer.pick(windowPosition);
+  private pickOwnEntity(windowPosition: Cartesian2): Entity | null {
+    const picked = this.viewer.scene.pick(windowPosition);
     const entity = picked?.id;
     if (!entity || !this.dataSource) return null;
     return this.dataSource.entities.values.includes(entity) ? entity : null;
@@ -206,8 +165,8 @@ export class AvalancheLayer extends LayerController {
 
   protected detach(): void {
     if (this.handler) {
-      this.handler.removeInputAction(this.cesium.ScreenSpaceEventType.LEFT_CLICK);
-      this.handler.removeInputAction(this.cesium.ScreenSpaceEventType.MOUSE_MOVE);
+      this.handler.removeInputAction(ScreenSpaceEventType.LEFT_CLICK);
+      this.handler.removeInputAction(ScreenSpaceEventType.MOUSE_MOVE);
       this.handler.destroy();
       this.handler = null;
     }

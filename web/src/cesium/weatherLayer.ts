@@ -15,7 +15,8 @@
  * tiles rather than trusting the browser HTTP cache to revalidate.
  */
 import type { WeatherMapLayerId, WeatherMapProvider } from "../providers/WeatherProvider";
-import { createCachedImageryLayer, type CesiumImageryLayer, type ImageryCesiumApi, type ImageryViewerLike } from "./cachedImagery";
+import { createCachedImageryLayer } from "./cachedImagery";
+import type { ImageryLayer, Viewer } from "cesium";
 import { Observable } from "./layerController";
 
 export type WeatherTileStatus = "idle" | "loading" | "ready" | "error";
@@ -28,13 +29,12 @@ export interface WeatherLayerState {
 export class WeatherLayer {
   readonly state = new Observable<WeatherLayerState>({ status: "idle", lastRefreshedAt: null });
 
-  private layer: CesiumImageryLayer | null = null;
+  private layer: ImageryLayer | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private activeLayer: WeatherMapLayerId | "none" = "none";
 
   constructor(
-    private readonly viewer: ImageryViewerLike,
-    private readonly cesium: ImageryCesiumApi,
+    private readonly viewer: Viewer,
     private readonly provider: WeatherMapProvider,
     private readonly apiKey: string | undefined,
   ) {}
@@ -81,7 +81,7 @@ export class WeatherLayer {
 
     const previous = this.layer;
     try {
-      this.layer = createCachedImageryLayer(this.cesium, {
+      this.layer = createCachedImageryLayer({
         urlTemplate,
         attributionHtml: this.provider.attribution?.html,
         alpha: 0.75,

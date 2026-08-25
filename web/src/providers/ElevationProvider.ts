@@ -4,6 +4,7 @@
  * `map.queryTerrainElevation` becomes Cesium's globe sampling.
  */
 import type { LngLat, LngLatElevation } from "./types";
+import { Cartographic, sampleTerrainMostDetailed, type Viewer } from "cesium";
 
 /**
  * Answers point/path elevation queries. The intended implementation samples
@@ -15,24 +16,6 @@ import type { LngLat, LngLatElevation } from "./types";
 export interface ElevationProvider {
   getElevation(point: LngLat): Promise<number | null>;
   getElevationProfile(points: LngLat[]): Promise<LngLatElevation[]>;
-}
-
-/** Minimal structural types for the bits of Cesium this file touches, so the
- * module stays compilable without a hard dependency on Cesium's typings. */
-interface CesiumLike {
-  Cartographic: {
-    fromDegrees(lon: number, lat: number, height?: number): unknown;
-  };
-  sampleTerrainMostDetailed?(provider: unknown, positions: unknown[]): Promise<unknown[]>;
-}
-
-interface ViewerLike {
-  scene: {
-    globe: {
-      getHeight(cartographic: unknown): number | undefined;
-      terrainProvider: unknown;
-    };
-  };
 }
 
 /**
@@ -52,15 +35,14 @@ interface ViewerLike {
  */
 export class CesiumElevationProvider implements ElevationProvider {
   constructor(
-    private readonly getViewer: () => ViewerLike | null,
-    private readonly cesium: CesiumLike,
+    private readonly getViewer: () => Viewer | null,
     private readonly options: { detailedProfiles?: boolean } = {},
   ) {}
 
   async getElevation(point: LngLat): Promise<number | null> {
     const viewer = this.getViewer();
     if (!viewer) return null;
-    const carto = this.cesium.Cartographic.fromDegrees(point.lng, point.lat);
+    const carto = Cartographic.fromDegrees(point.lng, point.lat);
     const height = viewer.scene.globe.getHeight(carto);
     return height ?? null;
   }
@@ -69,13 +51,13 @@ export class CesiumElevationProvider implements ElevationProvider {
     const viewer = this.getViewer();
     if (!viewer) return points.map((p) => ({ ...p, elevation: undefined }));
 
-    if (this.options.detailedProfiles && this.cesium.sampleTerrainMostDetailed) {
-      const cartos = points.map((p) => this.cesium.Cartographic.fromDegrees(p.lng, p.lat));
+    if (this.options.detailedProfiles) {
+      const cartos = points.map((p) => Cartographic.fromDegrees(p.lng, p.lat));
       try {
-        const sampled = (await this.cesium.sampleTerrainMostDetailed(
+        const sampled = await sampleTerrainMostDetailed(
           viewer.scene.globe.terrainProvider,
           cartos,
-        )) as { height?: number }[];
+        );
         return points.map((p, i) => ({ ...p, elevation: sampled[i]?.height ?? undefined }));
       } catch {
         // Fall through to the resident-tile path rather than failing the

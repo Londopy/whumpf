@@ -1,3 +1,8 @@
+// Bundle-surface check for the ported modules (see src/smoke.ts).
+import "./src/smoke.ts";
+// Widget CSS from the installed package, not a CDN -- keeps it locked to
+// whatever version npm actually resolved.
+import "cesium/Build/Cesium/Widgets/widgets.css";
 import * as Cesium from "cesium";
 import { createAttributeMaterial, hexToVec3, setUniforms } from "./attributeMaterial.js";
 import { makeTestAttributeTile } from "./testTile.js";

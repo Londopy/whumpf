@@ -20,6 +20,19 @@ import type { RoutingProvider, RouteResult } from "../providers/RoutingProvider"
 import type { LngLat } from "../providers/types";
 import { nearestPointOnLines } from "../geo/nearestPointOnLine";
 import { describeNetworkError } from "../net/fetchTimeout";
+import {
+  Cartesian2,
+  Cartesian3,
+  Cartographic,
+  Color,
+  ConstantPositionProperty,
+  type Entity,
+  HeightReference,
+  Math as CesiumMath,
+  ScreenSpaceEventHandler,
+  ScreenSpaceEventType,
+  type Viewer,
+} from "cesium";
 
 // Clicks/drags within this distance of a trail snap onto it; farther than
 // this, the point is assumed to genuinely be off-trail (e.g. a trailhead
@@ -58,54 +71,6 @@ export interface TrailGeometrySource {
   linesNear(point: LngLat): LngLat[][];
 }
 
-/** Structural slice of the Cesium API used here. */
-export interface RouteCesiumApi {
-  Cartesian3: {
-    fromDegrees(lon: number, lat: number, height?: number): unknown;
-    fromDegreesArray(coords: number[]): unknown[];
-  };
-  Color: { fromCssColorString(css: string): unknown };
-  ScreenSpaceEventHandler: new (element: unknown) => RouteScreenSpaceHandler;
-  ScreenSpaceEventType: {
-    LEFT_CLICK: number;
-    LEFT_DOWN: number;
-    LEFT_UP: number;
-    MOUSE_MOVE: number;
-  };
-  Cartographic: { fromCartesian(cartesian: unknown): { longitude: number; latitude: number } | undefined };
-  Math: { toDegrees(radians: number): number };
-  HeightReference: { CLAMP_TO_GROUND: number };
-  defined(value: unknown): boolean;
-}
-
-export interface RouteScreenSpaceHandler {
-  setInputAction(action: (event: any) => void, type: number): void;
-  removeInputAction(type: number): void;
-  destroy(): void;
-}
-
-interface RouteEntity {
-  id?: unknown;
-  position?: unknown;
-  point?: { pixelSize: number; color: unknown; outlineColor: unknown; outlineWidth: number; heightReference?: unknown };
-  polyline?: { positions: unknown; width: number; material: unknown; clampToGround?: boolean };
-}
-
-export interface RouteViewerLike {
-  scene: {
-    canvas: HTMLCanvasElement;
-    screenSpaceCameraController: { enableRotate: boolean; enableTranslate: boolean };
-    globe: { pick(ray: unknown, scene: unknown): unknown };
-holdsPickPosition?: boolean;
-  };
-  camera: { getPickRay(windowPosition: unknown): unknown };
-  entities: {
-    add(entity: Record<string, unknown>): RouteEntity;
-    remove(entity: RouteEntity): boolean;
-  };
-  pick(windowPosition: unknown): { id?: RouteEntity } | undefined;
-}
-
 /**
  * Controls the route line and waypoint markers.
  *
@@ -115,9 +80,9 @@ holdsPickPosition?: boolean;
  * cancellation semantics are preserved.
  */
 export class RouteLayer {
-  private markers: RouteEntity[] = [];
-  private routeEntities: RouteEntity[] = [];
-  private handler: RouteScreenSpaceHandler | null = null;
+  private markers: Entity[] = [];
+  private routeEntities: Entity[] = [];
+  private handler: ScreenSpaceEventHandler | null = null;
 
   private state: RouteEditorState | null = null;
   private importedResult: RouteResult | null = null;
@@ -128,8 +93,7 @@ export class RouteLayer {
   private dragIndex: number | null = null;
 
   constructor(
-    private readonly viewer: RouteViewerLike,
-    private readonly cesium: RouteCesiumApi,
+    private readonly viewer: Viewer,
     private readonly routingProvider: RoutingProvider,
     private readonly dispatch: (action: RouteAction) => void,
     private readonly onRouteComputed: (result: RouteResult | null, error: string | null) => void,
@@ -171,10 +135,10 @@ export class RouteLayer {
     this.routeGeneration++;
     if (this.handler) {
       for (const type of [
-        this.cesium.ScreenSpaceEventType.LEFT_CLICK,
-        this.cesium.ScreenSpaceEventType.LEFT_DOWN,
-        this.cesium.ScreenSpaceEventType.LEFT_UP,
-        this.cesium.ScreenSpaceEventType.MOUSE_MOVE,
+        ScreenSpaceEventType.LEFT_CLICK,
+        ScreenSpaceEventType.LEFT_DOWN,
+        ScreenSpaceEventType.LEFT_UP,
+        ScreenSpaceEventType.MOUSE_MOVE,
       ]) {
         this.handler.removeInputAction(type);
       }
@@ -207,8 +171,8 @@ export class RouteLayer {
   // --- interaction -------------------------------------------------------
 
   private wireInteraction(): void {
-    const handler = new this.cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas);
-    const T = this.cesium.ScreenSpaceEventType;
+    const handler = new ScreenSpaceEventHandler(this.viewer.scene.canvas);
+    const T = ScreenSpaceEventType;
 
     // Click on the globe adds a waypoint, but only while editing and only
     // when the click did not land on an existing marker (which means
@@ -243,7 +207,7 @@ export class RouteLayer {
       if (!point) return;
       const marker = this.markers[this.dragIndex];
       if (marker) {
-        marker.position = this.cesium.Cartesian3.fromDegrees(point.lng, point.lat);
+        marker.position = new ConstantPositionProperty(Cartesian3.fromDegrees(point.lng, point.lat));
       }
     }, T.MOUSE_MOVE);
 
@@ -259,7 +223,7 @@ export class RouteLayer {
       const snapped = this.snap(point);
       const marker = this.markers[index];
       if (marker) {
-        marker.position = this.cesium.Cartesian3.fromDegrees(snapped.lng, snapped.lat);
+        marker.position = new ConstantPositionProperty(Cartesian3.fromDegrees(snapped.lng, snapped.lat));
       }
       this.dispatch({ type: "MOVE_WAYPOINT", index, point: snapped });
     }, T.LEFT_UP);
@@ -269,21 +233,21 @@ export class RouteLayer {
 
   /** Converts a screen position to lon/lat on the globe surface, or null if
    * the ray missed (pointing at sky). */
-  private pickGlobe(windowPosition: unknown): LngLat | null {
+  private pickGlobe(windowPosition: Cartesian2): LngLat | null {
     const ray = this.viewer.camera.getPickRay(windowPosition);
     if (!ray) return null;
     const cartesian = this.viewer.scene.globe.pick(ray, this.viewer.scene);
     if (!cartesian) return null;
-    const carto = this.cesium.Cartographic.fromCartesian(cartesian);
+    const carto = Cartographic.fromCartesian(cartesian);
     if (!carto) return null;
     return {
-      lng: this.cesium.Math.toDegrees(carto.longitude),
-      lat: this.cesium.Math.toDegrees(carto.latitude),
+      lng: CesiumMath.toDegrees(carto.longitude),
+      lat: CesiumMath.toDegrees(carto.latitude),
     };
   }
 
-  private markerIndexAt(windowPosition: unknown): number | null {
-    const picked = this.viewer.pick(windowPosition);
+  private markerIndexAt(windowPosition: Cartesian2): number | null {
+    const picked = this.viewer.scene.pick(windowPosition);
     if (!picked?.id) return null;
     const index = this.markers.indexOf(picked.id);
     return index === -1 ? null : index;
@@ -298,13 +262,13 @@ export class RouteLayer {
       const color =
         index === 0 ? "#22c55e" : index === waypoints.length - 1 ? "#ef4444" : "#2563eb";
       return this.viewer.entities.add({
-        position: this.cesium.Cartesian3.fromDegrees(point.lng, point.lat),
+        position: Cartesian3.fromDegrees(point.lng, point.lat),
         point: {
           pixelSize: isEndpoint ? 16 : 11,
-          color: this.cesium.Color.fromCssColorString(color),
-          outlineColor: this.cesium.Color.fromCssColorString("#ffffff"),
+          color: Color.fromCssColorString(color),
+          outlineColor: Color.fromCssColorString("#ffffff"),
           outlineWidth: 2,
-          heightReference: this.cesium.HeightReference.CLAMP_TO_GROUND,
+          heightReference: HeightReference.CLAMP_TO_GROUND,
         },
       });
     });
@@ -360,7 +324,7 @@ export class RouteLayer {
 
     for (const segment of segments) {
       if (segment.coords.length < 2) continue;
-      const positions = this.cesium.Cartesian3.fromDegreesArray(segment.coords.flat());
+      const positions = Cartesian3.fromDegreesArray(segment.coords.flat());
 
       // Casing first so the coloured line sits on top, matching the
       // two-layer white-under-colour treatment in the original.
@@ -369,7 +333,7 @@ export class RouteLayer {
           polyline: {
             positions,
             width: 6,
-            material: this.cesium.Color.fromCssColorString(CASING_COLOR),
+            material: Color.fromCssColorString(CASING_COLOR),
             clampToGround: true,
           },
         }),
@@ -379,7 +343,7 @@ export class RouteLayer {
           polyline: {
             positions,
             width: 4,
-            material: this.cesium.Color.fromCssColorString(segment.color),
+            material: Color.fromCssColorString(segment.color),
             clampToGround: true,
           },
         }),
