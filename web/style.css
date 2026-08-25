@@ -287,3 +287,14 @@ h2 {
   margin: 12px 0 0;
   line-height: 1.45;
 }
+
+
+/* Synthetic-terrain warning. Deliberately loud: an overlay drawn from a test
+   pattern is indistinguishable from a real one, and this is the only thing
+   on screen that says so. */
+.badge.synthetic {
+  background: #7a2118;
+  color: #ffe9e6;
+  border-color: #a8382c;
+  font-weight: 600;
+}

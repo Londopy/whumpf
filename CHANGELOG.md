@@ -25,6 +25,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI now covers `web/` (typecheck, smoke, contract, UI, build) and guards the
   captured API response against going stale
 
+- End-to-end aspect verification (`tests/test_pipeline_end_to_end.py`): all
+  eight compass directions through terrain → gdaldem → pack → unpack → octant →
+  bulletin mask, plus the negative case for each. Existing tests covered every
+  link in isolation; none asserted that a slope facing NE reads as NE
+- `docs/FIELD-VERIFICATION.md` — bench and on-snow checks before the overlay
+  informs a decision, and the quantisation and DEM limits that are properties
+  of the design rather than bugs
+- `pipeline.cli terrain --dem <tif>` accepts a hand-downloaded DEM, so the
+  stubbed `download()` no longer blocks the pipeline. `--upload-ion` is now
+  opt-in: the terrain mesh and the attribute overlay are independent, and
+  World Terrain is a fine base while the overlay becomes real
+- `GET /api/tiles/<slug>/<kind>/<z>/<x>/<y>.png` serves locally-built tiles, so
+  real terrain attributes need no object store or credentials
+- `VITE_ATTRIBUTE_TILES` switches the shader from the synthetic test tile to
+  real packed tiles, and the client shows a permanent
+  "SYNTHETIC TERRAIN — NOT THIS MOUNTAIN" badge whenever it is unset
+
 ### Changed
 
 - Documentation brought in line with the port: `README.md` (status, layout,

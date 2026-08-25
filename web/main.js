@@ -16,6 +16,17 @@ import { LayersPanel } from "./src/ui/layersPanel.ts";
 import { FeatureInfoPanel } from "./src/ui/featureInfo.ts";
 
 const API = import.meta.env?.VITE_API_URL ?? "http://localhost:5000";
+
+// XYZ template for real packed attribute tiles. Unset -> the synthetic cone
+// in testTile.js, which is a development aid and nothing more: it encodes a
+// generated shape, not terrain. Anything the overlay says while this is unset
+// is about the test pattern.
+//
+// After `python -m pipeline.cli attributes --aoi <slug>`, set this in
+// web/.env to serve what you just built:
+//   VITE_ATTRIBUTE_TILES=/api/tiles/{aoi}/attributes
+// {aoi} is substituted per AOI at load time.
+const ATTRIBUTE_TILES = import.meta.env?.VITE_ATTRIBUTE_TILES ?? "";
 Cesium.Ion.defaultAccessToken = import.meta.env?.VITE_ION_TOKEN ?? "";
 
 const OCTANTS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -32,6 +43,10 @@ const state = {
 
 let viewer;
 let material;
+// Tracked so the UI can say so out loud. A synthetic overlay that looks
+// authoritative is the single most dangerous state this app can be in.
+let usingSyntheticTiles = true;
+let attributeLayer = null;
 
 // Ported layers. Rebuilt per AOI, since every one of them is AOI-scoped.
 const featureProvider = new AoiFeatureProvider(API);
@@ -67,7 +82,11 @@ async function initViewer() {
   viewer.scene.fog.enabled = true;
   viewer.scene.skyAtmosphere.show = true;
 
+  // Replaced per-AOI in loadAttributeTiles() once an AOI is selected. The
+  // synthetic tile is the starting state so the app is usable before the
+  // pipeline has run.
   material = createAttributeMaterial(makeTestAttributeTile());
+  usingSyntheticTiles = true;
 
   elevationProvider = new CesiumElevationProvider(() => viewer);
   graticule = new Graticule(viewer, { showLabels: true });
@@ -118,9 +137,77 @@ async function loadAois() {
   await selectAoi(state.aois[0].slug);
 }
 
+/** Swaps the shader's source from the synthetic cone to real packed tiles.
+ *
+ * gdal2tiles writes y in TMS order; Cesium's UrlTemplateImageryProvider asks
+ * in XYZ. `{reverseY}` is Cesium's built-in flip for exactly this.
+ *
+ * If the tiles are missing or fail to load, this stays on the synthetic tile
+ * rather than showing an empty overlay -- an overlay that renders nothing is
+ * indistinguishable from terrain that matches no filter, which is the wrong
+ * thing to be ambiguous about.
+ */
+async function loadAttributeTiles(aoi) {
+  if (attributeLayer) {
+    viewer.imageryLayers.remove(attributeLayer, true);
+    attributeLayer = null;
+  }
+
+  if (!ATTRIBUTE_TILES) {
+    usingSyntheticTiles = true;
+    renderDataProvenance();
+    return;
+  }
+
+  const url = `${ATTRIBUTE_TILES.replace("{aoi}", aoi.slug)}/{z}/{x}/{reverseY}.png`;
+  const absolute = url.startsWith("/") ? `${API}${url}` : url;
+
+  try {
+    const provider = new Cesium.UrlTemplateImageryProvider({
+      url: absolute,
+      minimumLevel: 0,
+      maximumLevel: 15,
+      // Packed values must arrive byte-exact. Any resampling or compression
+      // between here and the shader corrupts slope/aspect/elevation in ways
+      // that still decode to plausible numbers.
+      enablePickFeatures: false,
+    });
+    attributeLayer = viewer.imageryLayers.addImageryProvider(provider);
+    usingSyntheticTiles = false;
+  } catch (e) {
+    console.warn("attribute tiles unavailable, staying on the test tile", e);
+    usingSyntheticTiles = true;
+  }
+  renderDataProvenance();
+}
+
+/** Says, permanently and visibly, whether the overlay is real terrain.
+ *
+ * This is a safety surface in the sense CONTRIBUTING.md means: do not remove
+ * it, do not make it dismissible, do not soften the wording. A synthetic
+ * overlay looks exactly as convincing as a real one. */
+function renderDataProvenance() {
+  const el = document.getElementById("data-provenance");
+  if (!el) return;
+  if (usingSyntheticTiles) {
+    el.hidden = false;
+    el.className = "badge synthetic";
+    el.textContent = "SYNTHETIC TERRAIN — NOT THIS MOUNTAIN";
+    el.title =
+      "The slope/aspect/elevation overlay is a generated test pattern, not " +
+      "real terrain. Run the attributes pipeline and set VITE_ATTRIBUTE_TILES.";
+  } else {
+    el.hidden = false;
+    el.className = "badge";
+    el.textContent = "TERRAIN: LOCAL BUILD";
+    el.title = "Overlay built from a DEM by pipeline/attributes.py.";
+  }
+}
+
 async function selectAoi(slug) {
   state.aoi = state.aois.find((a) => a.slug === slug);
   await loadTerrainForAoi(state.aoi);
+  await loadAttributeTiles(state.aoi);
   flyToAoi(state.aoi);
   await loadBulletin(slug);
   await rebuildLayers(slug);
