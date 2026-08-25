@@ -9,7 +9,9 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "smoke": "esbuild test/smoke.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/smoke.mjs --log-level=error && node node_modules/.cache/smoke.mjs"
+    "smoke": "esbuild test/smoke.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/smoke.mjs --log-level=error && node node_modules/.cache/smoke.mjs",
+    "contract": "esbuild test/contract.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/contract.mjs --log-level=error && node node_modules/.cache/contract.mjs",
+    "check": "npm run typecheck && npm run smoke && npm run contract"
   },
   "dependencies": {
     "cesium": "^1.118.0"

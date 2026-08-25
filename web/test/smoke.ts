@@ -3,6 +3,8 @@ import { parseGpx } from "../src/gpx/gpxImport";
 import { haversineDistance, pathLength, resampleLine } from "../src/geo/distance";
 import { estimateDifficulty } from "../src/routing/routeDifficulty";
 import { Observable } from "../src/cesium/layerController";
+import { AoiTrailSource } from "../src/cesium/aoiTrailSource";
+import { parseSkiLiftProperties, parseSkiRunProperties } from "../src/providers/SkiDataProvider";
 import { DOMParser as LinkeDOMParser } from "linkedom";
 
 // parseGpx uses the browser's DOMParser. Fine in the app; in Node it needs a
@@ -74,6 +76,45 @@ check("set with new value fires", fired === 2);
 unsub();
 obs.set(3);
 check("unsubscribe stops delivery", fired === 2);
+
+
+// 7. The server emits OpenSkiMap property names so his parsers work
+//    unchanged. These are the exact shapes api/features/overpass.py builds.
+const run = parseSkiRunProperties("run/1", {
+  name: "Middle Basin", difficulty: "advanced", color: "#111827", kind: "runs",
+});
+check("server run props parse via his parser",
+  run.difficulty === "advanced" && run.name === "Middle Basin", `${run.difficulty}`);
+
+const lift = parseSkiLiftProperties("lift/1", {
+  name_and_type: "Top Tow (T-bar Drag)", status: "operating", color: "#a1a1aa", kind: "lifts",
+});
+check("server lift props parse to the right lift type", lift.liftType === "drag", lift.liftType);
+
+const chair = parseSkiLiftProperties("lift/2", { name_and_type: "Chairlift" });
+check("unnamed lift still types correctly", chair.liftType === "chairlift", chair.liftType);
+
+// 8. Trail snapping window: bbox reject keeps far-away trails out.
+const fakeProvider = {
+  getFeatures: async () => ({
+    aoi: "craigieburn", source: "test", attribution: { html: "" }, isFixture: true,
+    counts: { trails: 2 },
+    features: [
+      { id: "trail/near", kind: "trails" as const, properties: {},
+        geometry: [{ lng: 171.7250, lat: -43.1500 }, { lng: 171.7270, lat: -43.1520 }] },
+      { id: "trail/far", kind: "trails" as const, properties: {},
+        geometry: [{ lng: 6.8650, lat: 45.8326 }, { lng: 6.8700, lat: 45.8350 }] },
+    ],
+  }),
+} as any;
+const trails = new AoiTrailSource(fakeProvider);
+check("trail source starts unloaded", !trails.isLoaded);
+await trails.load("craigieburn");
+check("trail source loads", trails.isLoaded);
+const near = trails.linesNear({ lng: 171.7255, lat: -43.1505 });
+check("linesNear returns the nearby trail only", near.length === 1, `${near.length} of 2`);
+const none = trails.linesNear({ lng: 0, lat: 0 });
+check("linesNear rejects everything far away", none.length === 0, `${none.length}`);
 
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures === 0 ? 0 : 1);

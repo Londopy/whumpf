@@ -92,6 +92,16 @@ One testability note that came out of it: `parseGpx` uses the browser's
 `DOMParser`, so running it under Node needs a DOM shim (`linkedom`, wired
 into the smoke test). Worth knowing before you put any of this in CI.
 
+**Cross-boundary contract.** The Python endpoint and the TypeScript client
+agree on a payload shape by convention -- there is no shared schema, so
+nothing would catch it if one side drifted. `npm run contract` feeds a real
+captured Flask response through the real client parsers and asserts the
+result is usable: coordinate axis order, difficulty preservation, lift-type
+inference, and that run geometry measures to a plausible length. 13 checks.
+
+Run everything with `npm run check` (typecheck + smoke + contract) in
+`web/`, and `pytest -q` at the repo root.
+
 **Still unexecuted:** everything in `src/cesium/` needs WebGL and a real
 globe, so none of it has run. The API calls are now verified against
 Cesium's typings, which is a much stronger claim than before, but it is not
@@ -121,7 +131,7 @@ be. See below.
 
 ## Two findings worth acting on
 
-### Ski layers are blocked on vector tiles
+### Ski layers: unblocked (option 2, built)
 
 His ski runs and lifts come from an **OpenSkiMap vector tileset**, added as
 `type: "vector"` and styled with MapLibre filter expressions. Cesium renders
@@ -146,9 +156,38 @@ For a ski app this is not a minor gap. Four ways out, roughly by cost:
 4. **Drop ski layers.** Defensible if the avalanche overlay is the product
    and resort mapping was never the point.
 
-Option 2 also solves trail-snapping: the same endpoint can serve trail
-linework, and `routeLayer.ts` already takes a `TrailGeometrySource`
-interface waiting for exactly that.
+**Option 2 is now built.** New pieces:
+
+| Piece | What it is |
+|---|---|
+| `api/features/schema.py` | Normalized feature/collection types. Emits *OpenSkiMap's* property names (`difficulty`, `color`, `name_and_type`, `status`) so the client parsers work unchanged |
+| `api/features/base.py` | Adapter ABC + registry + fixture fallback -- same shape as `api/bulletin/base.py` |
+| `api/features/overpass.py` | OSM via Overpass, one AOI bbox per query |
+| `GET /api/aoi/<slug>/features` | GeoJSON, `?kinds=runs,lifts,trails`, cached 24h |
+| `web/src/providers/AoiFeatureProvider.ts` | Client |
+| `web/src/cesium/skiLayer.ts` | Runs and lifts as clickable, difficulty-filterable polylines |
+| `web/src/cesium/aoiTrailSource.ts` | The `TrailGeometrySource` implementation -- snapping now works |
+
+Design notes worth knowing:
+
+- **Overpass is shared and rate-limited.** Fetched once per AOI and cached
+  for a day server-side. It is not a per-camera-move query and must not
+  become one.
+- **An AOI with no features returns an empty collection, not a 404.** Absent
+  features are a normal state; a failure banner over an optional overlay is
+  worse than nothing.
+- **`?kinds=` rejects typos with a 400** rather than silently returning
+  empty -- an empty result and a misspelled parameter look identical, and
+  that is miserable to debug.
+- **Untagged difficulty is `"unknown"`, never guessed.** Same rule the
+  desktop client followed.
+- **Trails exclude `highway=footway`**, which in OSM is overwhelmingly urban
+  pavement and buries the actual approach tracks.
+
+Snapping is fetched up front rather than per click, because `linesNear` has
+to be synchronous (the route layer calls it inside a click handler). Before
+`load()` resolves, waypoints land where you clicked -- the same degradation
+the original had when no trail was loaded nearby.
 
 ### Contours: the port makes this *easier*
 

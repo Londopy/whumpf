@@ -15,3 +15,6 @@ export * as elevationProfile from "./routing/elevationProfile";
 export * as routeDifficulty from "./routing/routeDifficulty";
 export * as garminCourse from "./garmin/garminCourse";
 export * as offlineRegions from "./offline/regionTiles";
+export * as skiLayer from "./cesium/skiLayer";
+export * as aoiTrailSource from "./cesium/aoiTrailSource";
+export * as aoiFeatureProvider from "./providers/AoiFeatureProvider";
