@@ -208,3 +208,82 @@ h2 {
   }
   #topbar { right: 0; }
 }
+
+
+/* --- Layers panel + feature info -------------------------------------- */
+/* Ported capability from contour-map, expressed in this app's existing
+   idiom rather than importing its floating-glass shell. */
+
+#pane-layers { border-top: 1px solid var(--line, #22303a); padding-top: 16px; }
+
+.layer-row { margin-bottom: 12px; }
+
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  color: var(--text);
+  margin: 0;
+}
+
+.layer-toggle input[type=checkbox] { accent-color: var(--accent); margin: 0; }
+
+.layer-status {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.layer-status.error { color: #e2695f; }
+
+.layer-note {
+  display: block;
+  margin: 3px 0 0 26px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.info-panel {
+  border-top: 1px solid var(--line, #22303a);
+  padding-top: 14px;
+  margin-top: 4px;
+}
+.info-panel[hidden] { display: none; }
+
+.info-head { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 12px; }
+.info-swatch { width: 4px; align-self: stretch; border-radius: 2px; flex: none; }
+.info-title { font-size: 14px; color: var(--text); }
+.info-sub { font-size: 11px; color: var(--muted); text-transform: capitalize; }
+
+.info-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.info-close:hover { color: var(--text); }
+
+.info-panel dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 14px;
+}
+.info-panel dt { color: var(--muted); font-size: 12px; }
+.info-panel dd { margin: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.info-caveat {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 12px 0 0;
+  line-height: 1.45;
+}

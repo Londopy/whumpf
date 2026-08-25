@@ -2,6 +2,12 @@
 
 CesiumJS. Owner: **Client**.
 
+Two halves. The original prototype (`main.js`, `attributeMaterial.js`,
+`testTile.js`) is the shader experiment WHUMPF is built around. `src/` is a
+working mapping client ported in from `kiy-codes/contour-map` and rewritten for
+Cesium — see [PORTING-STATUS.md](./PORTING-STATUS.md) for what landed, what is
+deliberately different, and what is still unproven.
+
 ## Run it
 
 ```bash
@@ -37,11 +43,33 @@ Two swaps when the pipeline lands:
 
 | | |
 | --- | --- |
-| `index.html` | layout, four mode panes, disclaimer modal |
+| `index.html` | layout, four mode panes, layers section, disclaimer modal |
 | `style.css` | dark theme, responsive below 860px |
-| `main.js` | state, data loading, controls, uniform wiring |
+| `main.js` | state, data loading, controls, uniform wiring, layer lifecycle |
 | `attributeMaterial.js` | the GLSL material and uniform helpers |
 | `testTile.js` | synthetic attribute tile for development |
+| `src/cesium/` | ported map layers as controller classes |
+| `src/providers/` | data sources: routing, geocoding, weather, ski, AOI features |
+| `src/geo/`, `src/gpx/`, `src/routing/`, `src/garmin/` | engine-agnostic logic |
+| `src/ui/` | layers panel, feature info panel |
+| `test/` | headless checks — see below |
+
+## Checks
+
+```bash
+npm run check      # typecheck + smoke + contract + ui
+```
+
+| | |
+| --- | --- |
+| `npm run typecheck` | all of `src/`, strict, against Cesium's real typings |
+| `npm run smoke` | 19 checks on the ported logic — geodesy, GPX round trip, observables |
+| `npm run contract` | 13 checks feeding a real Flask response through the real parsers |
+| `npm run ui` | 20 DOM checks via linkedom, no browser |
+
+Nothing under `src/cesium/` is covered — those need WebGL. They typecheck
+against Cesium 1.144, which caught a real bug (`pick` is on `Scene`, not
+`Viewer`), but typechecking is not running.
 
 ## The shader
 
@@ -98,9 +126,14 @@ These are the difference between a defensible tool and a liability. See
 
 ## Still to build
 
-- [ ] Route drawing, clamped to terrain, posting to `/api/route/analyze`
-- [ ] Elevation profile strip with flagged segments
+- [ ] **Open it in a browser.** Nothing in `src/cesium/` has drawn a pixel.
+      Expect one or two bugs of the `viewer.pick` class in the first five minutes;
+      the status line beside each layer toggle says which layer.
 - [ ] Real attribute tile layer via `UrlTemplateImageryProvider`
+- [ ] Elevation profile strip with flagged segments (`src/routing/elevationProfile.ts`
+      is ported and tested — it needs a UI)
+- [ ] Remaining ported UI: search, route planner, offline manager, measure tool
 - [ ] Winter imagery layer
 - [ ] Persist the disclaimer dismissal
 - [ ] Loading and error states for the bulletin fetch
+- [ ] Route drawing posts to `/api/route/analyze`, which still returns 501

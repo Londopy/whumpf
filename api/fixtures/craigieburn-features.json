@@ -1,0 +1,105 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "_comment": "Hand-trimmed real Overpass response shape for the Craigieburn bbox. Kept small on purpose: enough elements to exercise every branch of normalize(), including the ones that should be dropped.",
+  "elements": [
+    {
+      "type": "way",
+      "id": 100001,
+      "tags": {
+        "piste:type": "downhill",
+        "piste:difficulty": "advanced",
+        "piste:name": "Middle Basin",
+        "name": "Middle Basin"
+      },
+      "geometry": [
+        {"lat": -43.1420, "lon": 171.7180},
+        {"lat": -43.1435, "lon": 171.7195},
+        {"lat": -43.1450, "lon": 171.7210}
+      ]
+    },
+    {
+      "type": "way",
+      "id": 100002,
+      "tags": {
+        "piste:type": "downhill",
+        "name": "Unnamed Face"
+      },
+      "geometry": [
+        {"lat": -43.1400, "lon": 171.7150},
+        {"lat": -43.1410, "lon": 171.7165}
+      ]
+    },
+    {
+      "type": "way",
+      "id": 100003,
+      "tags": {
+        "aerialway": "t-bar",
+        "name": "Top Tow",
+        "aerialway:status": "operating"
+      },
+      "geometry": [
+        {"lat": -43.1390, "lon": 171.7140},
+        {"lat": -43.1370, "lon": 171.7120}
+      ]
+    },
+    {
+      "type": "way",
+      "id": 100004,
+      "tags": {
+        "aerialway": "chair_lift"
+      },
+      "geometry": [
+        {"lat": -43.1360, "lon": 171.7100},
+        {"lat": -43.1340, "lon": 171.7080}
+      ]
+    },
+    {
+      "type": "way",
+      "id": 100005,
+      "tags": {
+        "highway": "track",
+        "name": "Craigieburn Access Road"
+      },
+      "geometry": [
+        {"lat": -43.1500, "lon": 171.7250},
+        {"lat": -43.1520, "lon": 171.7270},
+        {"lat": -43.1540, "lon": 171.7290}
+      ]
+    },
+    {
+      "type": "way",
+      "id": 100006,
+      "tags": {"highway": "path", "sac_scale": "mountain_hiking"},
+      "geometry": [
+        {"lat": -43.1480, "lon": 171.7230},
+        {"lat": -43.1490, "lon": 171.7240}
+      ]
+    },
+    {
+      "_comment": "Degenerate: single node. Must be dropped, not emitted as a 1-point LineString.",
+      "type": "way",
+      "id": 100007,
+      "tags": {"highway": "path"},
+      "geometry": [{"lat": -43.1470, "lon": 171.7220}]
+    },
+    {
+      "_comment": "Urban pavement. Must NOT be classified as a trail.",
+      "type": "way",
+      "id": 100008,
+      "tags": {"highway": "footway"},
+      "geometry": [
+        {"lat": -43.1460, "lon": 171.7215},
+        {"lat": -43.1462, "lon": 171.7218}
+      ]
+    },
+    {
+      "_comment": "A node, not a way. Must be ignored.",
+      "type": "node",
+      "id": 100009,
+      "lat": -43.1450,
+      "lon": 171.7200,
+      "tags": {"highway": "path"}
+    }
+  ]
+}

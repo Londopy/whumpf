@@ -11,10 +11,18 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from api.bulletin import get_adapter
+from api.features import get_adapter as get_feature_adapter
+from api.features import parse_kinds
 from pipeline.config import all_aoi_slugs, load_aoi
 
 CACHE_TTL = 30 * 60
 _cache: dict[str, tuple[float, dict]] = {}
+
+# Terrain features change on OSM's edit cadence, not a forecast cadence, and
+# Overpass is a shared free service -- so this is cached far longer and far
+# more aggressively than the bulletin.
+FEATURES_CACHE_TTL = 24 * 60 * 60
+_features_cache: dict[str, tuple[float, dict]] = {}
 
 
 def create_app() -> Flask:
@@ -58,6 +66,42 @@ def create_app() -> Flask:
         payload = get_adapter(aoi).get().to_dict()
         _cache[slug] = (now, payload)
         return jsonify(payload)
+
+    @app.get("/api/aoi/<slug>/features")
+    def aoi_features(slug: str):
+        """Ski runs, lifts, and trails for one AOI, as GeoJSON.
+
+        Replaces what the desktop client got from OpenSkiMap vector tiles.
+        Cesium has no vector-tile pipeline, and whumpf is AOI-scoped anyway,
+        so one bounding box of real features beats a world-wide tileset the
+        renderer cannot read.
+
+            /api/aoi/craigieburn/features
+            /api/aoi/craigieburn/features?kinds=runs,lifts
+
+        Always a FeatureCollection. An AOI with nothing mapped returns an
+        empty one rather than a 404 -- absent features are a normal state,
+        not a failure.
+        """
+        try:
+            kinds = parse_kinds(request.args.get("kinds"))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        try:
+            aoi = load_aoi(slug)
+        except FileNotFoundError as e:
+            return jsonify({"error": str(e)}), 404
+
+        now = time.time()
+        cached = _features_cache.get(slug)
+        if cached and now - cached[0] < FEATURES_CACHE_TTL:
+            collection = cached[1]
+        else:
+            collection = get_feature_adapter(aoi).get()
+            _features_cache[slug] = (now, collection)
+
+        return jsonify(collection.to_dict(kinds))
 
     @app.post("/api/route/analyze")
     def analyze_route():

@@ -1,4 +1,5 @@
-.PHONY: help check test lint api terrain attributes imagery all clean
+.PHONY: help check test lint api web web-install web-check web-build \
+        changelog release terrain attributes imagery all clean
 
 AOI ?= castle-peak
 PY  ?= python
@@ -7,9 +8,15 @@ help:
 	@echo "WHUMPF pipeline"
 	@echo ""
 	@echo "  make check                    verify GDAL + deps + AOI config"
-	@echo "  make test                     run the test suite"
+	@echo "  make test                     python test suite"
 	@echo "  make lint                     ruff"
 	@echo "  make api                      run the Flask dev server"
+	@echo ""
+	@echo "  make web                      run the Vite dev server (needs make api too)"
+	@echo "  make web-check                typecheck + smoke + contract + ui"
+	@echo "  make web-build                production build"
+	@echo "  make changelog                validate CHANGELOG.md"
+	@echo "  make release V=0.3.0          bump changelog + versions, then tag by hand"
 	@echo ""
 	@echo "  make terrain    AOI=<slug>    DEM -> warp -> clip -> ion"
 	@echo "  make attributes AOI=<slug>    slope/aspect/elev -> packed PNG tiles"
@@ -30,6 +37,30 @@ lint:
 
 api:
 	flask --app api.app run --debug
+
+web-install:
+	cd web && npm install
+
+# Everything CI runs for the web client. The Cesium layers are deliberately
+# absent -- they need WebGL, and a green check that skips them is worse than
+# an honest gap. See web/PORTING-STATUS.md.
+web-check:
+	cd web && npm run check
+
+web-build:
+	cd web && npm run build
+
+web:
+	cd web && npm run dev
+
+changelog:
+	patchnotes CHANGELOG.md validate
+
+# Moves [Unreleased] into a dated release and syncs the version everywhere.
+# Commit and tag yourself -- the tag is what triggers the release workflow.
+release:
+	@test -n "$(V)" || { echo "usage: make release V=0.3.0"; exit 2; }
+	$(PY) scripts/release.py $(V)
 
 terrain:
 	$(PY) -m pipeline.cli terrain --aoi $(AOI)

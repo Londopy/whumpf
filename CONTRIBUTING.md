@@ -27,7 +27,8 @@ This is repo-local config, so it does not affect your other projects.
 
 ## Setup
 
-Requires Python 3.11+ and GDAL 3.6+ with the CLI tools on `PATH`.
+Requires Python 3.11+, GDAL 3.6+ with the CLI tools on `PATH`, and Node 22+
+for the web client.
 
 ```bash
 # GDAL
@@ -39,7 +40,14 @@ pip install -e ".[dev]"
 cp .env.example .env
 
 make check    # verifies toolchain, deps, and AOI config
-pytest
+make test
+```
+
+Web client:
+
+```bash
+cd web && npm install
+npm run check    # typecheck + smoke + contract + UI checks
 ```
 
 Rust kernel:
@@ -77,6 +85,17 @@ and differ between regions. Never hardcode them.
 **Nothing assumes a hemisphere.** Loaded aspects are data, not constants. In New
 Zealand they are southerly.
 
+## Changelog
+
+Every PR needs an entry under `## [Unreleased]` in `CHANGELOG.md`. CI fails the
+PR without one, and flags off-spec dates or non-standard section headings as
+annotations on the offending line.
+
+Use one of the Keep a Changelog sections — `Added`, `Changed`, `Deprecated`,
+`Removed`, `Fixed`, `Security`. On release, `make release V=x.y.z` moves the
+whole block into a dated version and the tag's entry becomes the GitHub Release
+body, so write the entry for whoever reads the release, not for the diff.
+
 ## Style
 
 - Python: `ruff check .`, line length 100. Type hints on public functions.
@@ -92,11 +111,24 @@ resolution needs a test. Those three are where a bug is invisible.
 The Rust kernel is tested against a synthetic cone DEM with a known analytic
 answer — test natively with `cargo test` before building for WASM.
 
+Three things about the web-side tests are worth knowing before you add to them:
+
+- **`npm run contract`** feeds a *captured* Flask response through the real
+  TypeScript parsers. Python and TypeScript agree on that payload by convention
+  with no shared schema, so nothing else would catch the two drifting apart. If
+  you change the features endpoint's output shape, re-run
+  `python scripts/capture_features_response.py` and commit the result — CI
+  regenerates it and fails if it differs.
+- **`npm run ui`** runs the DOM components against linkedom, no browser needed.
+- **Nothing under `web/src/cesium/` is tested.** Those need WebGL. They are
+  typechecked against Cesium's real typings, which is not the same thing.
+  Pretending otherwise with a green check would be worse than the honest gap.
+
 ## Pull requests
 
 1. Branch off `main`
 2. Keep it focused — one concern per PR
-3. `pytest` and `cargo test` pass
+3. `make test`, `make web-check`, and `cargo test` pass
 4. Explain the *why* in the description
 5. Note any change to a safety surface explicitly
 

@@ -1,0 +1,176 @@
+{
+  "aoi": "craigieburn",
+  "attribution": "\u00a9 <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noreferrer\">OpenStreetMap</a> contributors",
+  "counts": {
+    "lifts": 2,
+    "runs": 2,
+    "trails": 2
+  },
+  "features": [
+    {
+      "geometry": {
+        "coordinates": [
+          [
+            171.718,
+            -43.142
+          ],
+          [
+            171.7195,
+            -43.1435
+          ],
+          [
+            171.721,
+            -43.145
+          ]
+        ],
+        "type": "LineString"
+      },
+      "id": "run/100001",
+      "properties": {
+        "color": "#111827",
+        "difficulty": "advanced",
+        "gladed": false,
+        "id": "run/100001",
+        "kind": "runs",
+        "name": "Middle Basin",
+        "patrolled": null
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          [
+            171.715,
+            -43.14
+          ],
+          [
+            171.7165,
+            -43.141
+          ]
+        ],
+        "type": "LineString"
+      },
+      "id": "run/100002",
+      "properties": {
+        "color": "#6b7280",
+        "difficulty": "unknown",
+        "gladed": false,
+        "id": "run/100002",
+        "kind": "runs",
+        "name": "Unnamed Face",
+        "patrolled": null
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          [
+            171.714,
+            -43.139
+          ],
+          [
+            171.712,
+            -43.137
+          ]
+        ],
+        "type": "LineString"
+      },
+      "id": "lift/100003",
+      "properties": {
+        "aerialway": "t-bar",
+        "color": "#a1a1aa",
+        "id": "lift/100003",
+        "kind": "lifts",
+        "name": "Top Tow",
+        "name_and_type": "Top Tow (T-bar Drag)",
+        "status": "operating"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          [
+            171.71,
+            -43.136
+          ],
+          [
+            171.708,
+            -43.134
+          ]
+        ],
+        "type": "LineString"
+      },
+      "id": "lift/100004",
+      "properties": {
+        "aerialway": "chair_lift",
+        "color": "#a1a1aa",
+        "id": "lift/100004",
+        "kind": "lifts",
+        "name": null,
+        "name_and_type": "Chairlift",
+        "status": null
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          [
+            171.725,
+            -43.15
+          ],
+          [
+            171.727,
+            -43.152
+          ],
+          [
+            171.729,
+            -43.154
+          ]
+        ],
+        "type": "LineString"
+      },
+      "id": "trail/100005",
+      "properties": {
+        "color": "#22c55e",
+        "highway": "track",
+        "id": "trail/100005",
+        "kind": "trails",
+        "name": "Craigieburn Access Road",
+        "sac_scale": null
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          [
+            171.723,
+            -43.148
+          ],
+          [
+            171.724,
+            -43.149
+          ]
+        ],
+        "type": "LineString"
+      },
+      "id": "trail/100006",
+      "properties": {
+        "color": "#22c55e",
+        "highway": "path",
+        "id": "trail/100006",
+        "kind": "trails",
+        "name": null,
+        "sac_scale": "mountain_hiking"
+      },
+      "type": "Feature"
+    }
+  ],
+  "is_fixture": true,
+  "source": "OpenStreetMap (Overpass)",
+  "type": "FeatureCollection"
+}
