@@ -114,6 +114,19 @@ Two AOIs. Adding a third is scope creep — add features, not area.
 Requires Python 3.11+, GDAL 3.6+ with the command-line tools on `PATH`, and
 Node 22+ for the web client.
 
+On Windows, conda-forge is by far the least painful route to GDAL's CLI
+tools — `pip install rasterio` bundles GDAL as a *library* but ships none of
+the executables the pipeline shells out to:
+
+```powershell
+conda create -y -n whumpf python=3.12
+conda activate whumpf
+conda install -y -c conda-forge gdal rasterio numpy
+```
+
+Install the conda packages *before* `pip install -e ".[dev]"` so pip sees
+rasterio already satisfied and does not add a second, competing GDAL.
+
 ```bash
 # GDAL (macOS)
 brew install gdal

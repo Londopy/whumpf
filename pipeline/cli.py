@@ -13,22 +13,22 @@ Each stage is independently re-runnable and writes to data/<slug>/.
 from __future__ import annotations
 
 import argparse
-import shutil
 import sys
 from pathlib import Path
 
-from . import attributes, imagery, terrain
+from . import attributes, gdal_tools, imagery, terrain
 from .config import all_aoi_slugs, load_aoi
-
-REQUIRED_TOOLS = ["gdalinfo", "gdalwarp", "gdaldem", "gdal_translate", "gdal2tiles.py"]
 
 
 def cmd_check(_args) -> int:
     ok = True
     print("GDAL tools:")
-    for tool in REQUIRED_TOOLS:
-        path = shutil.which(tool)
-        print(f"  {'OK  ' if path else 'MISS'} {tool}")
+    # Resolved the same way the pipeline resolves them, so a green check
+    # means the subprocess calls will actually work -- not just that
+    # something with a matching name sits on PATH.
+    for tool in gdal_tools.TOOL_CANDIDATES:
+        path = gdal_tools.find(tool)
+        print(f"  {'OK  ' if path else 'MISS'} {tool}" + (f"  ({path})" if path else ""))
         ok &= path is not None
 
     print("\nPython packages:")

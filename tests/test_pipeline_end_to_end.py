@@ -201,3 +201,56 @@ def test_real_gdaldem_agrees(name, d_row, d_col, tmp_path):
         f"gdaldem put a {name}-facing slope in {OCTANT_NAMES[octant]} "
         f"(raw aspect {aspect[centre]:.1f} deg)"
     )
+
+
+# --- GDAL tool resolution --------------------------------------------------
+
+
+def test_gdal_tool_resolution_handles_both_packagings(tmp_path, monkeypatch):
+    """gdal2tiles is a .py on Linux and an .exe wrapper on Windows.
+
+    `shutil.which("gdal2tiles.py")` finds the first and misses the second,
+    and `subprocess.run(["gdal2tiles.py", ...])` outright fails on Windows
+    because `.py` is not in PATHEXT. That made this a real tiling failure,
+    not just a cosmetic problem with `cli check`.
+    """
+    import os
+    import stat
+
+    from pipeline import gdal_tools
+
+    def fake_tool(name: str) -> None:
+        path = tmp_path / name
+        path.write_text("#!/bin/sh\n")
+        path.chmod(path.stat().st_mode | stat.S_IEXEC)
+
+    # Linux/conda-forge packaging.
+    fake_tool("gdal2tiles.py")
+    monkeypatch.setenv("PATH", str(tmp_path), prepend=os.pathsep)
+    assert gdal_tools.find("gdal2tiles") is not None
+
+    # Windows packaging: the .exe wrapper, no directly-runnable .py.
+    (tmp_path / "gdal2tiles.py").unlink()
+    fake_tool("gdal2tiles")
+    assert gdal_tools.find("gdal2tiles") is not None
+
+
+def test_missing_gdal_tool_says_what_to_do(tmp_path, monkeypatch):
+    """The error names every candidate tried, not just the one that failed."""
+    from pipeline import gdal_tools
+
+    monkeypatch.setenv("PATH", str(tmp_path))
+    with pytest.raises(FileNotFoundError, match="tried: gdal2tiles, gdal2tiles.py"):
+        gdal_tools.require("gdal2tiles")
+
+
+def test_check_and_pipeline_resolve_tools_identically():
+    """`cli check` must not go green on something the pipeline cannot run.
+
+    Both go through gdal_tools.find, so a passing check is a real guarantee
+    rather than a name that happens to sit on PATH.
+    """
+    from pipeline import cli, gdal_tools
+
+    assert "shutil" not in cli.__dict__, "cli should resolve via gdal_tools, not shutil.which"
+    assert set(gdal_tools.missing()) <= set(gdal_tools.TOOL_CANDIDATES)

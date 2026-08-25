@@ -17,6 +17,8 @@ from pathlib import Path
 
 import numpy as np
 
+from . import gdal_tools
+
 SLOPE_MAX = 90.0
 ASPECT_MAX = 360.0
 ELEV_MAX = 4000.0
@@ -96,11 +98,12 @@ def run_gdaldem(dem_path: Path, out_dir: Path) -> tuple[Path, Path]:
     aspect_path = out_dir / "aspect.tif"
 
     subprocess.run(
-        ["gdaldem", "slope", str(dem_path), str(slope_path), "-compute_edges"],
+        [gdal_tools.require("gdaldem"), "slope", str(dem_path), str(slope_path),
+         "-compute_edges"],
         check=True,
     )
     subprocess.run(
-        ["gdaldem", "aspect", str(dem_path), str(aspect_path),
+        [gdal_tools.require("gdaldem"), "aspect", str(dem_path), str(aspect_path),
          "-compute_edges", "-zero_for_flat"],
         check=True,
     )
@@ -162,7 +165,7 @@ def _verify_round_trip(packed_path: Path, slope_path: Path) -> None:
 def tile(packed_path: Path, out_dir: Path, zoom: tuple[int, int]) -> Path:
     tiles_dir = out_dir / "attr"
     subprocess.run(
-        ["gdal2tiles.py", "-p", "mercator", "-z", f"{zoom[0]}-{zoom[1]}",
+        [gdal_tools.require("gdal2tiles"), "-p", "mercator", "-z", f"{zoom[0]}-{zoom[1]}",
          "-r", "near", "--xyz", str(packed_path), str(tiles_dir)],
         check=True,
     )

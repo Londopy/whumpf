@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import gdal_tools
 from .config import AOI
 
 # Scene Classification Layer classes.
@@ -104,7 +105,7 @@ def detail_blend(composite_rgb: np.ndarray, detail_rgb: np.ndarray) -> np.ndarra
 def tile(composite_path: Path, out_dir: Path, zoom: tuple[int, int]) -> Path:
     tiles_dir = out_dir / "imagery"
     subprocess.run(
-        ["gdal2tiles.py", "-p", "mercator", "-z", f"{zoom[0]}-{zoom[1]}",
+        [gdal_tools.require("gdal2tiles"), "-p", "mercator", "-z", f"{zoom[0]}-{zoom[1]}",
          "-r", "bilinear", "--xyz", str(composite_path), str(tiles_dir)],
         check=True,
     )

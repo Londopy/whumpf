@@ -42,6 +42,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   real packed tiles, and the client shows a permanent
   "SYNTHETIC TERRAIN — NOT THIS MOUNTAIN" badge whenever it is unset
 
+### Fixed
+
+- GDAL tool resolution on Windows. `gdal2tiles` ships as a `.py` script on
+  Linux and as an `.exe` wrapper on Windows, and `shutil.which` finds only
+  the former. `subprocess.run(["gdal2tiles.py", ...])` fails outright on
+  Windows for the same reason (`.py` is not in `PATHEXT`), so this would have
+  broken tiling for real rather than only mis-reporting `cli check`. All GDAL
+  invocations now resolve through `pipeline/gdal_tools.py`, which tries every
+  known packaging and passes the resolved absolute path to `subprocess`
+
 ### Changed
 
 - Documentation brought in line with the port: `README.md` (status, layout,

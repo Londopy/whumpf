@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from . import gdal_tools
 from .config import AOI
 
 
@@ -28,15 +29,15 @@ def build(aoi: AOI, tifs: list[Path]) -> Path:
     warped = out / "aoi_3857.tif"
     clipped = out / "aoi_clip.tif"
 
-    subprocess.run(["gdalbuildvrt", str(vrt), *map(str, tifs)], check=True)
+    subprocess.run([gdal_tools.require("gdalbuildvrt"), str(vrt), *map(str, tifs)], check=True)
     subprocess.run(
-        ["gdalwarp", "-t_srs", "EPSG:3857", "-r", "cubic",
+        [gdal_tools.require("gdalwarp"), "-t_srs", "EPSG:3857", "-r", "cubic",
          "-co", "COMPRESS=DEFLATE", str(vrt), str(warped)],
         check=True,
     )
     ulx, uly, lrx, lry = aoi.bbox.as_gdal_projwin()
     subprocess.run(
-        ["gdal_translate", "-projwin_srs", "EPSG:4326",
+        [gdal_tools.require("gdal_translate"), "-projwin_srs", "EPSG:4326",
          "-projwin", str(ulx), str(uly), str(lrx), str(lry),
          str(warped), str(clipped)],
         check=True,
