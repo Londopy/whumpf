@@ -25,7 +25,17 @@ crosses one.
 
 ## Status
 
-Pre-build. See [`whumpf-spec-v0.2.md`](./whumpf-spec-v0.2.md) for the full technical spec.
+Early, but no longer scaffold. The Cesium client runs, the bulletin API answers,
+and a working mapping client has been ported in from a parallel build
+(`kiy-codes/contour-map`) — GPX/GeoJSON/KML, route analysis, offline tiles,
+Garmin export, ski runs and lifts.
+
+What is **not** yet true: the attribute tile pipeline still runs against a
+synthetic test tile rather than real DEM output, and none of the ported Cesium
+layers have been exercised in a browser. See
+[`web/PORTING-STATUS.md`](./web/PORTING-STATUS.md) for exactly what is proven
+and what is not, and [`whumpf-spec-v0.2.md`](./whumpf-spec-v0.2.md) for the
+full technical spec.
 
 ## Safety notice
 
@@ -76,10 +86,17 @@ config/aoi/          AOI definitions — bbox, sources, bulletin adapter, season
 pipeline/            Offline data pipeline (Python + GDAL), runs once per AOI
 api/                 Flask app: bulletin proxy + normalizer, route analysis
 api/bulletin/        One adapter per national bulletin format
+api/features/        Ski runs, lifts and trails per AOI, from OSM via Overpass
 web/                 CesiumJS frontend (Client)
+web/src/             Ported client modules — see web/PORTING-STATUS.md
+web/test/            Headless checks: smoke, cross-language contract, UI
 crates/whumpf-runout Rust runout kernel → WASM (web) + native (iOS/Android)
-tests/               Round-trip and normalization tests
+scripts/             Release automation and CI helpers
+tests/               Round-trip, normalization, and terrain reference tests
 ```
+
+`api/features/` mirrors `api/bulletin/`'s shape exactly — adapter base class,
+registry, fixture fallback. If you have read one you have read the other.
 
 ## Areas of interest
 
@@ -94,7 +111,8 @@ Two AOIs. Adding a third is scope creep — add features, not area.
 
 ## Setup
 
-Requires Python 3.11+ and GDAL 3.6+ with the command-line tools on `PATH`.
+Requires Python 3.11+, GDAL 3.6+ with the command-line tools on `PATH`, and
+Node 22+ for the web client.
 
 ```bash
 # GDAL (macOS)
@@ -112,7 +130,10 @@ Verify:
 
 ```bash
 make check          # gdal present, python deps, env vars
-pytest              # round-trip packing test must pass before anything else
+make test           # round-trip packing test must pass before anything else
+
+cd web && npm install && cd ..
+make web-check      # typecheck + smoke + contract + UI checks
 ```
 
 ## Running the pipeline
@@ -129,10 +150,43 @@ Each step is independently re-runnable and writes to `data/<aoi>/`.
 ## Running the API
 
 ```bash
-flask --app api.app run --debug
+make api    # flask --app api.app run --debug
+
 curl 'localhost:5000/api/bulletin?aoi=craigieburn'   # live
 curl 'localhost:5000/api/bulletin?aoi=castle-peak'   # fixture
+
+# Ski runs, lifts and trails for one AOI, as GeoJSON
+curl 'localhost:5000/api/aoi/craigieburn/features'
+curl 'localhost:5000/api/aoi/craigieburn/features?kinds=runs,lifts'
 ```
+
+Features come from OpenStreetMap via Overpass, which is a free shared service.
+Results are cached 24h server-side and fetched once per AOI — this is not a
+per-camera-move query and must not become one.
+
+## Running the client
+
+```bash
+make api          # terminal 1
+make web          # terminal 2 -> http://localhost:5173
+```
+
+The client works without the API — the bulletin panel reads "No bulletin
+available" and the slope and manual modes still function. The Layers section
+needs the API, since that is where terrain features come from.
+
+## Releasing
+
+```bash
+make release V=0.3.0     # move [Unreleased] into a dated release, sync versions
+git add -A && git commit -m "release: 0.3.0"
+git tag v0.3.0 && git push && git push --tags
+```
+
+The tag triggers [`release.yml`](.github/workflows/release.yml), which re-runs
+every check, refuses to publish if the tag has no matching changelog entry, and
+builds the GitHub Release body from `CHANGELOG.md`. Release notes are written
+once, in the file people actually read.
 
 ---
 

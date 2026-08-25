@@ -12,7 +12,7 @@
 | **Team** | **Data** — pipeline, cartography, API |
 | | **Client** — 3D rendering, UI, mobile |
 | **Window** | Aug 3 – Sep 30, 2026 (8 weeks, part-time) |
-| **Status** | Pre-build |
+| **Status** | Client and API running; attribute pipeline still on synthetic tiles. See `web/PORTING-STATUS.md`. |
 | **License** | MIT or Apache-2.0 — **required**, see §2.3 |
 
 ---

@@ -25,6 +25,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI now covers `web/` (typecheck, smoke, contract, UI, build) and guards the
   captured API response against going stale
 
+### Changed
+
+- Documentation brought in line with the port: `README.md` (status, layout,
+  setup, running the client, releasing), `CONTRIBUTING.md` (Node setup, the
+  changelog requirement CI enforces, what the web checks do and do not cover),
+  `web/README.md`, the PR template, and the spec's status line
+- `Makefile` gained `web`, `web-check`, `web-build`, `changelog` and `release`
+  targets — the web client and the release path were previously invisible here
+- `.gitignore` covers the release artifacts `release.yml` writes into the
+  checkout (`RELEASE_NOTES.md`, `whumpf-web-*.zip`)
+
 - Repository scaffold: pipeline, API, Rust runout crate, tests, CI
 - AOI configuration system covering Castle Peak (US) and Craigieburn (NZ)
 - Packed terrain attribute encoding (slope/aspect/elevation into RGBA) with
