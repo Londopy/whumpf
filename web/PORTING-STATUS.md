@@ -109,6 +109,28 @@ Run everything with `npm run check` in `web/` — typecheck, then 19 smoke,
 13 contract, and 20 UI checks — plus `pytest -q` at the repo root for 44
 more.
 
+**CI runs all of it.** `.github/workflows/ci.yml` gained two jobs:
+
+- **`web`** — `npm ci`, typecheck, the three headless suites, and a build.
+- **`contract-freshness`** — regenerates the captured endpoint response and
+  fails if it differs from what's committed.
+
+That second job exists because the contract test runs against a *captured*
+payload, which can go stale: the endpoint changes shape, nobody re-captures,
+and the test keeps passing against something the server no longer sends —
+worse than having no test at all. Regenerate with
+`python scripts/capture_features_response.py`.
+
+Both jobs were verified by breaking things on purpose:
+
+| Deliberate change | Freshness | Contract |
+|---|---|---|
+| Renamed a lift label (`T-bar Drag` → `T-Bar`) | caught | passed, correctly — the parser is robust to it |
+| Renamed `name_and_type` → `nameAndType` | caught | **failed**, correctly — lift typing collapsed to `other` |
+
+Which is the division of labour you want: freshness notices *change*,
+contract notices *breakage*.
+
 **Still unexecuted:** everything in `src/cesium/` needs WebGL and a real
 globe, so none of it has run. The API calls are now verified against
 Cesium's typings, which is a much stronger claim than before, but it is not

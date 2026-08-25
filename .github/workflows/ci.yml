@@ -74,6 +74,67 @@ jobs:
           rustup target add wasm32-unknown-unknown
           cargo build --release --target wasm32-unknown-unknown --features wasm
 
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Runtime checks, all headless. The Cesium layers need WebGL and are
+      # deliberately not covered here -- see web/PORTING-STATUS.md.
+      - name: Smoke (ported logic)
+        run: npm run smoke
+
+      - name: Contract (Python payload -> TS parsers)
+        run: npm run contract
+
+      - name: UI (linkedom)
+        run: npm run ui
+
+      - name: Build
+        run: npm run build
+
+  contract-freshness:
+    name: contract fixture is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask flask-cors requests
+
+      # The contract test runs against a captured response. If the endpoint
+      # changes shape and nobody re-captures, the test keeps passing against
+      # a payload the server no longer sends -- which is worse than having
+      # no test. So regenerate it here and fail if it drifted.
+      - name: Regenerate and diff
+        run: |
+          python scripts/capture_features_response.py
+          git diff --exit-code web/test/fixtures-endpoint-response.json \
+            || { echo "::error::Captured response is stale. Run scripts/capture_features_response.py and commit."; exit 1; }
+
   licence:
     name: licence check
     runs-on: ubuntu-latest
