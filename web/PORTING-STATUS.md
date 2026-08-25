@@ -99,8 +99,15 @@ captured Flask response through the real client parsers and asserts the
 result is usable: coordinate axis order, difficulty preservation, lift-type
 inference, and that run geometry measures to a plausible length. 13 checks.
 
-Run everything with `npm run check` (typecheck + smoke + contract) in
-`web/`, and `pytest -q` at the repo root.
+**Headless UI checks.** `LayersPanel` and `FeatureInfoPanel` are ordinary
+DOM construction, so they run against linkedom without a browser. 20 checks
+cover toggle-to-controller plumbing, the status line in every state, the
+elevation dash-not-zero rule, and HTML-escaping of OSM names (which are
+user-supplied data).
+
+Run everything with `npm run check` in `web/` — typecheck, then 19 smoke,
+13 contract, and 20 UI checks — plus `pytest -q` at the repo root for 44
+more.
 
 **Still unexecuted:** everything in `src/cesium/` needs WebGL and a real
 globe, so none of it has run. The API calls are now verified against
@@ -111,21 +118,62 @@ the same as having watched it draw. That is what the vertical slice is for.
 
 ## Not done
 
-**Phase 3 — the UI (~4,690 lines, 31 components).** All of `src/map/*.tsx`
-plus `App.tsx`: layers menu, search bar, route planner, elevation profile
-chart, offline download panel, settings, measure tool, info panels, and the
-Liquid Glass theme. This is the single largest remaining chunk and it is
-mechanical rather than architectural — DOM construction and event wiring
-against controllers that already exist.
+**Phase 3 — most of the UI.** A first slice is now wired (see "Runnable
+slice" below): layer toggles and a feature info panel, grafted into whumpf's
+existing side panel.
 
-His 2,568 lines of CSS mostly transfer, but they are keyed to his component
-structure, so they move with the components rather than ahead of them.
+Still unported, roughly 4,000 lines: search bar, route planner, elevation
+profile chart, offline download panel and regions manager, measure tool,
+settings, place info, and the Liquid Glass theme.
+
+Note this is deliberately **not** a wholesale port of his 31 components.
+whumpf already has a panel, a mode switcher, and an AOI selector; his
+components assume his app shell. Importing that shell wholesale would give
+you two competing UIs on one page. Each remaining component is worth
+porting as capability re-expressed in this app's idiom, the way the layers
+panel was — not as a file copy.
 
 **Ski runs and lifts (`useSkiLayers`, 198 lines).** Blocked, and worth
 understanding before you plan around it — see below.
 
 **Contours (`useContours`, 162 lines).** Not ported, and probably should not
 be. See below.
+
+---
+
+## Runnable slice
+
+The app now actually does something with the ported code. Start the API and
+the dev server:
+
+```bash
+flask --app api.app run --debug   # terminal 1
+cd web && npm run dev             # terminal 2
+```
+
+The side panel gains a **Layers** section with four toggles:
+
+| Toggle | What it does |
+|---|---|
+| Ski runs | OSM piste geometry for the AOI, coloured by tagged difficulty, clickable |
+| Lifts | Aerialways, typed (gondola/chair/drag/carpet) and clickable |
+| Snap routes to trails | Loads approach tracks so route waypoints snap to them |
+| Lat/lng grid | Graticule with labels |
+
+Clicking a run or lift opens an info panel with length, top/bottom
+elevation, and vertical drop. Elevation is sampled from the loaded terrain
+and renders as `—` when terrain has not loaded, never as `0 m`. On an
+avalanche tool a fabricated elevation is worse than a blank.
+
+Toggle state survives an AOI change: if runs were on for one range, they
+stay on for the next.
+
+**This is the part I could not verify.** Everything in `src/cesium/` needs
+WebGL and a real globe. The API calls are checked against Cesium's typings
+and the UI is checked headlessly, but nothing has drawn a pixel. If a layer
+misbehaves, the browser console is the ground truth and the status line
+beside each toggle (`loading…` / a count / `none here` / `failed`) is the
+first place to look.
 
 ---
 

@@ -1,11 +1,19 @@
-// Bundle-surface check for the ported modules (see src/smoke.ts).
-import "./src/smoke.ts";
 // Widget CSS from the installed package, not a CDN -- keeps it locked to
 // whatever version npm actually resolved.
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import * as Cesium from "cesium";
 import { createAttributeMaterial, hexToVec3, setUniforms } from "./attributeMaterial.js";
 import { makeTestAttributeTile } from "./testTile.js";
+
+// Ported from contour-map (kiy-codes), rewritten for Cesium. See
+// PORTING-STATUS.md.
+import { AoiFeatureProvider } from "./src/providers/AoiFeatureProvider.ts";
+import { CesiumElevationProvider } from "./src/providers/ElevationProvider.ts";
+import { SkiLayer } from "./src/cesium/skiLayer.ts";
+import { AoiTrailSource } from "./src/cesium/aoiTrailSource.ts";
+import { Graticule } from "./src/cesium/graticule.ts";
+import { LayersPanel } from "./src/ui/layersPanel.ts";
+import { FeatureInfoPanel } from "./src/ui/featureInfo.ts";
 
 const API = import.meta.env?.VITE_API_URL ?? "http://localhost:5000";
 Cesium.Ion.defaultAccessToken = import.meta.env?.VITE_ION_TOKEN ?? "";
@@ -24,6 +32,18 @@ const state = {
 
 let viewer;
 let material;
+
+// Ported layers. Rebuilt per AOI, since every one of them is AOI-scoped.
+const featureProvider = new AoiFeatureProvider(API);
+let skiLayer = null;
+let trailSource = null;
+let graticule = null;
+let layersPanel = null;
+let infoPanel = null;
+let elevationProvider = null;
+// Toggle state survives an AOI change -- if you had runs on for one range,
+// you almost certainly want them on for the next.
+const layerState = { runs: false, lifts: false, trails: false, grid: false };
 
 // --- scene ---------------------------------------------------------------
 
@@ -48,6 +68,13 @@ async function initViewer() {
   viewer.scene.skyAtmosphere.show = true;
 
   material = createAttributeMaterial(makeTestAttributeTile());
+
+  elevationProvider = new CesiumElevationProvider(() => viewer);
+  graticule = new Graticule(viewer, { showLabels: true });
+  infoPanel = new FeatureInfoPanel(
+    document.getElementById("feature-info"),
+    elevationProvider
+  );
 }
 
 async function loadTerrainForAoi(aoi) {
@@ -96,7 +123,81 @@ async function selectAoi(slug) {
   await loadTerrainForAoi(state.aoi);
   flyToAoi(state.aoi);
   await loadBulletin(slug);
+  await rebuildLayers(slug);
   renderAll();
+}
+
+// --- ported layers -------------------------------------------------------
+
+/** Tears down the previous AOI's layers and builds the new one's.
+ *
+ * Features are fetched per AOI and cached server-side for a day (Overpass is
+ * a shared, rate-limited service), so this is a cheap call after the first
+ * visit to a given range. */
+async function rebuildLayers(slug) {
+  if (skiLayer) skiLayer.disable();
+  if (trailSource) trailSource.clear();
+  infoPanel.clear();
+
+  skiLayer = new SkiLayer(viewer, featureProvider, slug, (selection) => {
+    void infoPanel.show(selection);
+  });
+  trailSource = new AoiTrailSource(featureProvider);
+
+  if (!layersPanel) {
+    layersPanel = new LayersPanel(document.getElementById("pane-layers"), [
+      {
+        id: "runs",
+        label: "Ski runs",
+        initial: layerState.runs,
+        note: "OpenStreetMap piste data for this area.",
+        onChange: (on) => {
+          layerState.runs = on;
+          void skiLayer.setEnabled(on || layerState.lifts);
+          skiLayer.setOptions({ showRuns: on, showLifts: layerState.lifts });
+        },
+      },
+      {
+        id: "lifts",
+        label: "Lifts",
+        initial: layerState.lifts,
+        onChange: (on) => {
+          layerState.lifts = on;
+          void skiLayer.setEnabled(on || layerState.runs);
+          skiLayer.setOptions({ showRuns: layerState.runs, showLifts: on });
+        },
+      },
+      {
+        id: "trails",
+        label: "Snap routes to trails",
+        initial: layerState.trails,
+        note: "Loads approach tracks so waypoints snap to them.",
+        onChange: (on) => {
+          layerState.trails = on;
+          if (on) void trailSource.load(state.aoi.slug).catch(() => {});
+          else trailSource.clear();
+        },
+      },
+      {
+        id: "grid",
+        label: "Lat/lng grid",
+        initial: layerState.grid,
+        onChange: (on) => {
+          layerState.grid = on;
+          graticule.setEnabled(on);
+        },
+      },
+    ]);
+  }
+
+  // Re-apply whatever was toggled on for the previous AOI.
+  if (layerState.runs || layerState.lifts) {
+    await skiLayer.setEnabled(true);
+    skiLayer.setOptions({ showRuns: layerState.runs, showLifts: layerState.lifts });
+  }
+  if (layerState.trails) {
+    await trailSource.load(slug).catch(() => {});
+  }
 }
 
 async function loadBulletin(slug) {
