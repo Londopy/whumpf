@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build a release for"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Nothing is published until the tag, the changelog and the code agree.
+  # A release whose notes say one thing and whose tag says another is worse
+  # than a delayed release.
+  verify:
+    name: verify tag and changelog agree
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install patchnotes
+        run: pip install patchnotes
+
+      - name: Derive version from the tag
+        id: version
+        run: |
+          raw="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "version=${raw#v}" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${raw#v}"
+
+      - name: Changelog is well-formed
+        run: patchnotes CHANGELOG.md validate --github
+
+      # The tag must correspond to a real, dated entry. Catches the classic
+      # release-day mistake: tagging v0.3.0 while the changelog still has
+      # everything sitting under [Unreleased].
+      - name: Tag has a matching changelog entry
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          if ! patchnotes CHANGELOG.md show "$version" >/dev/null 2>&1; then
+            echo "::error::No CHANGELOG.md entry for $version. Run scripts/release.py $version, commit, then tag."
+            exit 1
+          fi
+          patchnotes CHANGELOG.md show "$version"
+
+  checks:
+    name: full checks
+    needs: verify
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: publish GitHub Release
+    needs: [verify, checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install patchnotes
+        run: pip install patchnotes
+
+      # The release body is the changelog entry -- written once, by hand, in
+      # the file people actually read. No second copy to drift.
+      - name: Build release notes from the changelog
+        run: |
+          version="${{ needs.verify.outputs.version }}"
+          patchnotes CHANGELOG.md show "$version" > RELEASE_NOTES.md
+          echo "--- notes ---"; cat RELEASE_NOTES.md
+
+      - name: Package the web client
+        run: |
+          cd web
+          npm ci
+          npm run build
+          cd dist && zip -r ../../whumpf-web-${{ needs.verify.outputs.version }}.zip .
+
+      - name: Create the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: WHUMPF ${{ needs.verify.outputs.version }}
+          body_path: RELEASE_NOTES.md
+          files: whumpf-web-${{ needs.verify.outputs.version }}.zip
+          draft: false
+          prerelease: ${{ startsWith(needs.verify.outputs.version, '0.') }}

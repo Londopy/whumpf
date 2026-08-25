@@ -21,6 +21,11 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.4",
+    # Changelog validation, release notes, and version bumping.
+    "patchnotes>=2.6",
+    # Optional cross-check for slope/aspect (tests/test_terrain_reference.py).
+    # Test-only on purpose -- see that module for why it is not a runtime dep.
+    "pygeospy>=0.2.2",
 ]
 
 [project.scripts]

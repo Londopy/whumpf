@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Ported the working client from `kiy-codes/contour-map` onto whumpf's stack:
+  GPX/GeoJSON/KML, geodesy, route analysis, Garmin export, tile caching and
+  offline regions transferred near-verbatim; MapLibre layers rewritten
+  against Cesium
+- `GET /api/aoi/<slug>/features` — ski runs, lifts and trails per AOI from
+  OpenStreetMap via Overpass, cached 24h
+- Layers panel and feature info panel in the web client
+- `tests/test_terrain_reference.py` — in-repo Horn (1981) slope/aspect
+  reference, verified against analytically-known planes, so the numbers
+  `gdaldem` produces can be checked against something that lives with the code
+- Release automation: `scripts/release.py`, changelog validation in CI, and a
+  tag-triggered release workflow that builds the GitHub Release body from
+  this file (all via `patchnotes`)
+- CI now covers `web/` (typecheck, smoke, contract, UI, build) and guards the
+  captured API response against going stale
+
 - Repository scaffold: pipeline, API, Rust runout crate, tests, CI
 - AOI configuration system covering Castle Peak (US) and Craigieburn (NZ)
 - Packed terrain attribute encoding (slope/aspect/elevation into RGBA) with
