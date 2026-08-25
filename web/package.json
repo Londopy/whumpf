@@ -6,13 +6,16 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "cesium": "^1.118.0"
   },
   "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "typescript": "~5.8.3",
     "vite": "^5.2.0",
     "vite-plugin-cesium": "^1.2.23"
   }
