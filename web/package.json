@@ -21,7 +21,7 @@
     "@types/geojson": "^7946.0.16",
     "esbuild": "^0.28.2",
     "linkedom": "^0.18.13",
-    "typescript": "~5.8.3",
+    "typescript": "~7.0.2",
     "vite": "^5.2.0",
     "vite-plugin-cesium": "^1.2.23"
   }
