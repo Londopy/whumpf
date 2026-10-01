@@ -15,7 +15,7 @@
     "ui": "esbuild test/ui.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ui.mjs --log-level=error && node node_modules/.cache/ui.mjs"
   },
   "dependencies": {
-    "cesium": "^1.118.0"
+    "cesium": "^1.145.0"
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
